@@ -107,7 +107,7 @@ exec_cmd(struct cmd *cmd)
 
 	case BACK: {
 		// runs a command in background
-		// nota jm: correr en terminal echo 10 & para ver el output
+		//
 		// esperado Your code here
 
 		int fk = fork();
