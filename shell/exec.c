@@ -94,8 +94,8 @@ exec_cmd(struct cmd *cmd)
 		// }
 
 		// if (fk == 0) {
-			e = (struct execcmd *) cmd;
-			execvp(e->argv[0], e->argv);
+		e = (struct execcmd *) cmd;
+		execvp(e->argv[0], e->argv);
 		// 	perror("execvp");
 		// 	exit(-1);
 		// } else
@@ -107,8 +107,8 @@ exec_cmd(struct cmd *cmd)
 
 	case BACK: {
 		// runs a command in background
-		// nota jm: correr en terminal echo 10 & para ver el output esperado
-		// Your code here
+		// nota jm: correr en terminal echo 10 & para ver el output
+		// esperado Your code here
 
 		int fk = fork();
 		if (fk == -1) {
@@ -121,7 +121,7 @@ exec_cmd(struct cmd *cmd)
 			e = (struct execcmd *) b->c;
 			printf("[PID=%d]\n", getpid());
 			execvp(e->argv[0], e->argv);
-			
+
 			perror("execvp");
 			exit(-1);
 		} else {
