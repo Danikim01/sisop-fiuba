@@ -125,7 +125,7 @@ exec_cmd(struct cmd *cmd)
 			perror("execvp");
 			exit(-1);
 		} else {
-			wait(NULL);
+			waitpid(fk, NULL, WNOHANG);
 		}
 
 		// printf("Background process are not yet implemented\n");
