@@ -87,19 +87,19 @@ exec_cmd(struct cmd *cmd)
 	switch (cmd->type) {
 	case EXEC:
 		// spawns a command
-		int fk = fork();
-		if (fk == -1) {
-			perror("error al crear el fork");
-			exit(-1);
-		}
+		// int fk = fork();
+		// if (fk == -1) {
+		// 	perror("error al crear el fork");
+		// 	exit(-1);
+		// }
 
-		if (fk == 0) {
+		// if (fk == 0) {
 			e = (struct execcmd *) cmd;
 			execvp(e->argv[0], e->argv);
-			perror("execvp");
-			exit(-1);
-		} else
-			wait(NULL);
+		// 	perror("execvp");
+		// 	exit(-1);
+		// } else
+		// 	wait(NULL);
 
 		// printf("Commands are not yet implemented\n");
 		//  _exit(-1);
@@ -107,10 +107,29 @@ exec_cmd(struct cmd *cmd)
 
 	case BACK: {
 		// runs a command in background
-		//
+		// nota jm: correr en terminal echo 10 & para ver el output esperado
 		// Your code here
-		printf("Background process are not yet implemented\n");
-		_exit(-1);
+
+		int fk = fork();
+		if (fk == -1) {
+			perror("error al crear el fork");
+			exit(-1);
+		}
+
+		if (fk == 0) {
+			b = (struct backcmd *) cmd;
+			e = (struct execcmd *) b->c;
+			printf("[PID=%d]\n", getpid());
+			execvp(e->argv[0], e->argv);
+			
+			perror("execvp");
+			exit(-1);
+		} else {
+			wait(NULL);
+		}
+
+		// printf("Background process are not yet implemented\n");
+		// _exit(-1);
 		break;
 	}
 
