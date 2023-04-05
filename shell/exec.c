@@ -87,10 +87,21 @@ exec_cmd(struct cmd *cmd)
 	switch (cmd->type) {
 	case EXEC:
 		// spawns a command
-		//
-		// Your code here
-		printf("Commands are not yet implemented\n");
-		_exit(-1);
+		int fk = fork();
+		if (fk == -1) {
+			perror("error al crear el fork");
+			exit(-1);
+		}
+
+		if (fk == 0) {
+			e = (struct execcmd *) cmd;
+			execvp(e->argv[0], e->argv);
+			perror("execvp");
+			exit(-1);
+		} else wait(NULL);
+
+		//printf("Commands are not yet implemented\n");
+		// _exit(-1);
 		break;
 
 	case BACK: {
