@@ -98,10 +98,11 @@ exec_cmd(struct cmd *cmd)
 			execvp(e->argv[0], e->argv);
 			perror("execvp");
 			exit(-1);
-		} else wait(NULL);
+		} else
+			wait(NULL);
 
-		//printf("Commands are not yet implemented\n");
-		// _exit(-1);
+		// printf("Commands are not yet implemented\n");
+		//  _exit(-1);
 		break;
 
 	case BACK: {
