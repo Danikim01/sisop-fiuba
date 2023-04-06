@@ -61,12 +61,22 @@ set_environ_vars(char **eargv, int eargc)
 // Hints:
 // - if O_CREAT is used, add S_IWUSR and S_IRUSR
 // 	to make it a readable normal file
+#define FILE_MODE (S_IRUSR | S_IWUSR)
 static int
 open_redir_fd(char *file, int flags)
 {
-	// Your code here
-
-	return -1;
+	int fd;
+	if (flags == O_RDONLY) {
+		fd = open(file, flags | O_CLOEXEC);
+	} else {
+		fd = open(file,
+		          flags | O_CLOEXEC | O_CREAT | O_TRUNC,
+		          S_IRUSR | S_IWUSR);
+	}
+	if (fd == -1) {
+		printf_debug("Fallo open con file:\n", file);
+	}
+	return fd;
 }
 
 // executes a command - does not return
@@ -86,23 +96,21 @@ exec_cmd(struct cmd *cmd)
 
 	switch (cmd->type) {
 	case EXEC:
-		// spawns a command
-		// int fk = fork();
-		// if (fk == -1) {
-		// 	perror("error al crear el fork");
-		// 	exit(-1);
-		// }
+		//spawns a command
+		int fk = fork();
+		if (fk == -1) {
+			perror("error al crear el fork");
+			exit(-1);
+		}
 
-		// if (fk == 0) {
-		e = (struct execcmd *) cmd;
-		execvp(e->argv[0], e->argv);
-		// 	perror("execvp");
-		// 	exit(-1);
-		// } else
-		// 	wait(NULL);
+		if (fk == 0) {
+			e = (struct execcmd *) cmd;
+			execvp(e->argv[0], e->argv);
+			perror("execvp");
+			exit(-1);
+		} else
+			wait(NULL);
 
-		// printf("Commands are not yet implemented\n");
-		//  _exit(-1);
 		break;
 
 	case BACK: {
@@ -141,8 +149,78 @@ exec_cmd(struct cmd *cmd)
 		// is greater than zero
 		//
 		// Your code here
-		printf("Redirections are not yet implemented\n");
-		_exit(-1);
+		r = (struct execcmd *) cmd;
+
+		printf("type: %d\n", r->type);
+		printf("pid: %d\n", r->pid);
+		printf("scmd: %s\n", r->scmd);
+		printf("argc: %d\n", r->argc);
+		printf("eargc: %d\n", r->eargc);
+
+		// Imprimir los elementos del arreglo argv
+		printf("argv:\n");
+		for (int i = 0; i < r->argc; i++) {
+			printf("\targv[%d]: %s\n", i, r->argv[i]);
+		}
+
+		// Imprimir los elementos del arreglo eargv
+		printf("eargv:\n");
+		for (int i = 0; i < r->eargc; i++) {
+			printf("\teargv[%d]: %s\n", i, r->eargv[i]);
+		}
+
+		printf("out_file: %s\n", r->out_file);
+		printf("in_file: %s\n", r->in_file);
+		printf("err_file: %s\n", r->err_file);
+
+
+
+		if(strlen(r->out_file) > 0 && strlen(r->err_file) == 0){
+			int fd_abierto = open_redir_fd(r->out_file,O_RDWR);
+			printf("El fd abierto es %d\n",fd_abierto);
+			dup2(fd_abierto,1);
+			close(fd_abierto);
+			execvp(r->argv[0], r->argv);
+		}else if(strlen(r->in_file) > 0){
+			int fd_abierto = open_redir_fd(r->in_file,O_RDONLY);
+			printf("El fd abierto es%d\n",fd_abierto);
+			dup2(fd_abierto,0);
+			close(fd_abierto);
+			execvp(r->argv[0], r->argv);
+		}else if(strlen(r->err_file) > 0 && strlen(r->out_file) > 0){
+			/*
+			int index = block_contains(r->err_file, '&');
+			printf("El index es %d\n",index);
+			if(index == 0){
+				printf("Entraaaaaaaaaaaaaaa\n");
+				int fd_abierto = open_redir_fd(r->err_file,O_RDWR);
+				
+				int fd_abierto2 = open_redir_fd(r->out_file,O_RDWR);
+				printf("El fd abierto es %d\n",fd_abierto2);
+				dup2(fd_abierto2,1);
+				dup2(fd_abierto2,2);
+
+				close(fd_abierto);
+				close(fd_abierto2);
+				execvp(r->argv[0], r->argv);
+				_exit(1);
+			}
+			*/
+			
+			int fd_abierto = open_redir_fd(r->err_file,O_RDWR);
+			printf("El fd abierto es %d\n", fd_abierto);
+			dup2(fd_abierto, 2);
+
+			int fd_abierto2 = open_redir_fd(r->out_file,O_RDWR);
+			printf("El fd abierto es %d\n",fd_abierto2);
+			dup2(fd_abierto2,1);
+
+			close(fd_abierto);
+			close(fd_abierto2);
+			execvp(r->argv[0], r->argv);
+			
+		}
+    	_exit(1);
 		break;
 	}
 
