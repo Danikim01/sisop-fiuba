@@ -61,7 +61,6 @@ set_environ_vars(char **eargv, int eargc)
 // Hints:
 // - if O_CREAT is used, add S_IWUSR and S_IRUSR
 // 	to make it a readable normal file
-#define FILE_MODE (S_IRUSR | S_IWUSR)
 static int
 open_redir_fd(char *file, int flags)
 {
@@ -77,19 +76,6 @@ open_redir_fd(char *file, int flags)
 		printf_debug("Fallo open con file:\n", file);
 	}
 	return fd;
-}
-
-
-void print_pipecmd(struct pipecmd *p) {
-    printf("Type: %d\n", p->type);
-    printf("PID: %d\n", p->pid);
-    printf("SCMD: %s\n", p->scmd);
-    printf("Leftcmd type: %d\n", p->leftcmd->type);
-    printf("Leftcmd PID: %d\n", p->leftcmd->pid);
-    printf("Leftcmd SCMD: %s\n", p->leftcmd->scmd);
-    printf("Rightcmd type: %d\n", p->rightcmd->type);
-    printf("Rightcmd PID: %d\n", p->rightcmd->pid);
-    printf("Rightcmd SCMD: %s\n", p->rightcmd->scmd);
 }
 
 // executes a command - does not return
@@ -201,24 +187,18 @@ exec_cmd(struct cmd *cmd)
 			close(fd_abierto);
 			execvp(r->argv[0], r->argv);
 		}else if(strlen(r->err_file) > 0 && strlen(r->out_file) > 0){
-			/*
+			
 			int index = block_contains(r->err_file, '&');
 			printf("El index es %d\n",index);
 			if(index == 0){
-				printf("Entraaaaaaaaaaaaaaa\n");
-				int fd_abierto = open_redir_fd(r->err_file,O_RDWR);
-				
-				int fd_abierto2 = open_redir_fd(r->out_file,O_RDWR);
-				printf("El fd abierto es %d\n",fd_abierto2);
-				dup2(fd_abierto2,1);
-				dup2(fd_abierto2,2);
-
-				close(fd_abierto);
-				close(fd_abierto2);
+				int fd = open_redir_fd(r->out_file, O_RDWR);
+				dup2(fd, STDOUT_FILENO);
+				dup2(fd, STDERR_FILENO);
+				close(fd);
 				execvp(r->argv[0], r->argv);
 				_exit(1);
+				return;
 			}
-			*/
 			
 			int fd_abierto = open_redir_fd(r->err_file,O_RDWR);
 			printf("El fd abierto es %d\n", fd_abierto);
