@@ -95,7 +95,7 @@ exec_cmd(struct cmd *cmd)
 
 	switch (cmd->type) {
 	case EXEC:
-		//spawns a command
+		// spawns a command
 		int fk = fork();
 		if (fk == -1) {
 			perror("error al crear el fork");
@@ -173,24 +173,22 @@ exec_cmd(struct cmd *cmd)
 		printf("err_file: %s\n", r->err_file);
 
 
-
-		if(strlen(r->out_file) > 0 && strlen(r->err_file) == 0){
-			int fd_abierto = open_redir_fd(r->out_file,O_RDWR);
-			printf("El fd abierto es %d\n",fd_abierto);
-			dup2(fd_abierto,1);
+		if (strlen(r->out_file) > 0 && strlen(r->err_file) == 0) {
+			int fd_abierto = open_redir_fd(r->out_file, O_RDWR);
+			printf("El fd abierto es %d\n", fd_abierto);
+			dup2(fd_abierto, 1);
 			close(fd_abierto);
 			execvp(r->argv[0], r->argv);
-		}else if(strlen(r->in_file) > 0){
-			int fd_abierto = open_redir_fd(r->in_file,O_RDONLY);
-			printf("El fd abierto es%d\n",fd_abierto);
-			dup2(fd_abierto,0);
+		} else if (strlen(r->in_file) > 0) {
+			int fd_abierto = open_redir_fd(r->in_file, O_RDONLY);
+			printf("El fd abierto es%d\n", fd_abierto);
+			dup2(fd_abierto, 0);
 			close(fd_abierto);
 			execvp(r->argv[0], r->argv);
-		}else if(strlen(r->err_file) > 0 && strlen(r->out_file) > 0){
-			
+		} else if (strlen(r->err_file) > 0 && strlen(r->out_file) > 0) {
 			int index = block_contains(r->err_file, '&');
-			printf("El index es %d\n",index);
-			if(index == 0){
+			printf("El index es %d\n", index);
+			if (index == 0) {
 				int fd = open_redir_fd(r->out_file, O_RDWR);
 				dup2(fd, STDOUT_FILENO);
 				dup2(fd, STDERR_FILENO);
@@ -199,26 +197,25 @@ exec_cmd(struct cmd *cmd)
 				_exit(1);
 				return;
 			}
-			
-			int fd_abierto = open_redir_fd(r->err_file,O_RDWR);
+
+			int fd_abierto = open_redir_fd(r->err_file, O_RDWR);
 			printf("El fd abierto es %d\n", fd_abierto);
 			dup2(fd_abierto, 2);
 
-			int fd_abierto2 = open_redir_fd(r->out_file,O_RDWR);
-			printf("El fd abierto es %d\n",fd_abierto2);
-			dup2(fd_abierto2,1);
+			int fd_abierto2 = open_redir_fd(r->out_file, O_RDWR);
+			printf("El fd abierto es %d\n", fd_abierto2);
+			dup2(fd_abierto2, 1);
 
 			close(fd_abierto);
 			close(fd_abierto2);
 			execvp(r->argv[0], r->argv);
-			
 		}
-    	_exit(1);
+		_exit(1);
 		break;
 	}
 
 	case PIPE: {
-		p = (struct pipecmd *)cmd;
+		p = (struct pipecmd *) cmd;
 
 		int fd[2];
 		if (pipe(fd) < 0) {
@@ -230,40 +227,41 @@ exec_cmd(struct cmd *cmd)
 		if (left_pid < 0) {
 			perror("fork");
 			return;
-		} else if (left_pid == 0) { // hijo izquierdo
-			close(fd[0]); // cierra extremo de lectura del pipe
+		} else if (left_pid == 0) {  // hijo izquierdo
+			close(fd[0]);  // cierra extremo de lectura del pipe
 			dup2(fd[1], STDOUT_FILENO);
-			close(fd[1]); // cierra extremo de escritura del pipe
+			close(fd[1]);  // cierra extremo de escritura del pipe
 
-			struct execcmd *left_cmd = (struct execcmd *)p->leftcmd;
+			struct execcmd *left_cmd = (struct execcmd *) p->leftcmd;
 			execvp(left_cmd->argv[0], left_cmd->argv);
-			perror("execvp"); // si falla execvp, termina el proceso hijo izquierdo
+			perror("execvp");  // si falla execvp, termina el proceso hijo izquierdo
 			exit(EXIT_FAILURE);
 		}
 
 		int right_pid = fork();
 		if (right_pid < 0) {
 			perror("fork");
-			kill(left_pid, SIGKILL); // si falla fork, mata al hijo izquierdo
+			kill(left_pid,
+			     SIGKILL);  // si falla fork, mata al hijo izquierdo
 			return;
-		} else if (right_pid == 0) { // hijo derecho
-			close(fd[1]); // cierra extremo de escritura del pipe
+		} else if (right_pid == 0) {  // hijo derecho
+			close(fd[1]);  // cierra extremo de escritura del pipe
 			dup2(fd[0], STDIN_FILENO);
-			close(fd[0]); // cierra extremo de lectura del pipe
+			close(fd[0]);  // cierra extremo de lectura del pipe
 
-			struct execcmd *right_cmd = (struct execcmd *)p->rightcmd;
+			struct execcmd *right_cmd = (struct execcmd *) p->rightcmd;
 			execvp(right_cmd->argv[0], right_cmd->argv);
-			perror("execvp"); // si falla execvp, termina el proceso hijo derecho
+			perror("execvp");  // si falla execvp, termina el proceso hijo derecho
 			exit(EXIT_FAILURE);
 		}
 
 		// proceso padre
-		close(fd[0]); // cierra extremo de lectura del pipe
-		close(fd[1]); // cierra extremo de escritura del pipe
-		waitpid(left_pid, NULL, 0); // espera a que el hijo izquierdo termine
-		waitpid(right_pid, NULL, 0); // espera a que el hijo derecho termine
+		close(fd[0]);  // cierra extremo de lectura del pipe
+		close(fd[1]);  // cierra extremo de escritura del pipe
+		waitpid(left_pid, NULL, 0);  // espera a que el hijo izquierdo termine
+		waitpid(right_pid, NULL, 0);  // espera a que el hijo derecho termine
 
 		break;
-		}
+	}
 	}
 }
