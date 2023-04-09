@@ -112,6 +112,8 @@ void
 exec_cmd(struct cmd *cmd)
 {
 	// To be used in the different cases
+
+	printf("pid: %d\n", cmd->pid);
 	struct execcmd *e;
 	struct backcmd *b;
 	struct execcmd *r;
@@ -119,7 +121,8 @@ exec_cmd(struct cmd *cmd)
 
 	switch (cmd->type) {
 	case EXEC:
-		// spawns a command
+		// TODO: later add env var
+		//  spawns a command
 		e = (struct execcmd *) cmd;
 		execvp(e->argv[0], e->argv);
 		perror("execvp");
@@ -129,23 +132,21 @@ exec_cmd(struct cmd *cmd)
 
 	case BACK: {
 		// runs a command in background
-		//
-		// esperado Your code here
 
 		int fk = fork();
 		if (fk == -1) {
-			perror("error al crear el fork");
+			perror("fork");
 			exit(-1);
 		}
 
 		if (fk == 0) {
 			// child process
 			b = (struct backcmd *) cmd;
-			e = (struct execcmd *) b->c;
-			printf("[PID=%d]\n", getpid());
+			e = (struct execcmd *) cmd;
+			printf_debug("[PID=%d]\n", b->pid);
 			execvp(e->argv[0], e->argv);
 
-			perror("execvp");
+			printf_debug("execvp");
 			exit(-1);
 		} else {
 			// father process
