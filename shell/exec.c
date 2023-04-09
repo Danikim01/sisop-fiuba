@@ -112,15 +112,13 @@ void
 exec_cmd(struct cmd *cmd)
 {
 	// To be used in the different cases
-
-	printf("pid: %d\n", cmd->pid);
 	struct execcmd *e;
 	struct backcmd *b;
 	struct execcmd *r;
 	struct pipecmd *p;
 
 	switch (cmd->type) {
-	case EXEC:
+	case EXEC: {
 		// TODO: later add env var
 		//  spawns a command
 		e = (struct execcmd *) cmd;
@@ -129,6 +127,7 @@ exec_cmd(struct cmd *cmd)
 		exit(-1);
 
 		break;
+	}
 
 	case BACK: {
 		// runs a command in background
@@ -168,27 +167,27 @@ exec_cmd(struct cmd *cmd)
 		r = (struct execcmd *) cmd;
 		set_environ_vars(r->eargv, r->eargc);
 
-		// printf("type: %d\n", r->type);
-		// printf("pid: %d\n", r->pid);
-		// printf("scmd: %s\n", r->scmd);
-		// printf("argc: %d\n", r->argc);
-		// printf("eargc: %d\n", r->eargc);
+		printf("type: %d\n", r->type);
+		printf("pid: %d\n", r->pid);
+		printf("scmd: %s\n", r->scmd);
+		printf("argc: %d\n", r->argc);
+		printf("eargc: %d\n", r->eargc);
 
-		// // Imprimir los elementos del arreglo argv
-		// printf("argv:\n");
-		// for (int i = 0; i < r->argc; i++) {
-		// 	printf("\targv[%d]: %s\n", i, r->argv[i]);
-		// }
+		// Imprimir los elementos del arreglo argv
+		printf("argv:\n");
+		for (int i = 0; i < r->argc; i++) {
+			printf("\targv[%d]: %s\n", i, r->argv[i]);
+		}
 
-		// // Imprimir los elementos del arreglo eargv
-		// printf("eargv:\n");
-		// for (int i = 0; i < r->eargc; i++) {
-		// 	printf("\teargv[%d]: %s\n", i, r->eargv[i]);
-		// }
+		// Imprimir los elementos del arreglo eargv
+		printf("eargv:\n");
+		for (int i = 0; i < r->eargc; i++) {
+			printf("\teargv[%d]: %s\n", i, r->eargv[i]);
+		}
 
-		// printf("out_file: %s\n", r->out_file);
-		// printf("in_file: %s\n", r->in_file);
-		// printf("err_file: %s\n", r->err_file);
+		printf("out_file: %s\n", r->out_file);
+		printf("in_file: %s\n", r->in_file);
+		printf("err_file: %s\n", r->err_file);
 
 		int input_fd = -1;
 		int output_fd = -1;
@@ -238,6 +237,13 @@ exec_cmd(struct cmd *cmd)
 
 		if (error_fd != -1) {
 			dup2(error_fd, STDERR_FILENO);
+			close(error_fd);
+		}
+
+		if (input_fd != -1 && error_fd != -1) {
+			dup2(input_fd, STDOUT_FILENO);
+			dup2(error_fd, STDERR_FILENO);
+			close(input_fd);
 			close(error_fd);
 		}
 
