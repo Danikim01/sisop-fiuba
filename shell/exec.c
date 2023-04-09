@@ -1,5 +1,23 @@
 #include "exec.h"
 
+// ls -l | grep f
+static void
+multi_pipes(struct pipecmd *p)
+{
+	// izquierdo
+	int fk_l = fork();
+	if (fk_l < 0) {
+		perror("fork");
+		exit(-1);
+	}
+	//  leo de stdin
+	// 	escribe a stdout
+
+	// derecho
+	//  creo pipe
+	// 	llamo recursivamente
+}
+
 // sets "key" with the key part of "arg"
 // and null-terminates it
 //
@@ -253,54 +271,11 @@ exec_cmd(struct cmd *cmd)
 		break;
 	}
 
-
 	case PIPE: {
 		p = (struct pipecmd *) cmd;
+		multi_pipes(p);
 
-		int fd[2];
-		if (pipe(fd) < 0) {
-			perror("pipe");
-			return;
-		}
-
-		int left_pid = fork();
-		if (left_pid < 0) {
-			perror("fork");
-			return;
-		} else if (left_pid == 0) {  // hijo izquierdo
-			close(fd[0]);  // cierra extremo de lectura del pipe
-			dup2(fd[1], STDOUT_FILENO);
-			close(fd[1]);  // cierra extremo de escritura del pipe
-
-			struct execcmd *left_cmd = (struct execcmd *) p->leftcmd;
-			execvp(left_cmd->argv[0], left_cmd->argv);
-			perror("execvp");  // si falla execvp, termina el proceso hijo izquierdo
-			exit(EXIT_FAILURE);
-		}
-
-		int right_pid = fork();
-		if (right_pid < 0) {
-			perror("fork");
-			kill(left_pid,
-			     SIGKILL);  // si falla fork, mata al hijo izquierdo
-			return;
-		} else if (right_pid == 0) {  // hijo derecho
-			close(fd[1]);  // cierra extremo de escritura del pipe
-			dup2(fd[0], STDIN_FILENO);
-			close(fd[0]);  // cierra extremo de lectura del pipe
-
-			struct execcmd *right_cmd = (struct execcmd *) p->rightcmd;
-			execvp(right_cmd->argv[0], right_cmd->argv);
-			perror("execvp");  // si falla execvp, termina el proceso hijo derecho
-			exit(EXIT_FAILURE);
-		}
-
-		// proceso padre
-		close(fd[0]);  // cierra extremo de lectura del pipe
-		close(fd[1]);  // cierra extremo de escritura del pipe
-		waitpid(left_pid, NULL, 0);  // espera a que el hijo izquierdo termine
-		waitpid(right_pid, NULL, 0);  // espera a que el hijo derecho termine
-
+		// free_command(parsed_pipe);
 		break;
 	}
 	}
