@@ -103,6 +103,11 @@ expand_environ_var(char *arg)
 {
 	// Your code here
 
+	if (arg[0] == '$') {
+		// the correct substitution with the environment value should be performed
+	} else {
+	}
+
 	return arg;
 }
 

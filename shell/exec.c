@@ -48,7 +48,31 @@ get_environ_value(char *arg, char *value, int idx)
 static void
 set_environ_vars(char **eargv, int eargc)
 {
-	// Your code here
+	printf("eargc %d \n", eargc);
+	for (int i = 0; i < eargc; i++) {
+		int equal_index = -1;
+		printf("hola1 \n");
+		if ((equal_index = block_contains(eargv[i], '=')) == -1) {
+			printf_debug("Error obtaining = index in "
+			             "set_eviron_vars.\n");
+			break;
+		}
+		printf("hola2 \n");
+
+		char *key = (char *) malloc(equal_index);
+		char *value = (char *) malloc(strlen(eargv[i]) - equal_index);
+		get_environ_key(eargv[i], key);
+		get_environ_value(eargv[i], value, equal_index);
+
+		printf("key: %s", key);
+		printf("value: %s", value);
+
+		if (setenv(key, value, 1) == 0) {
+			printf("&%s set to: %s\n", key, value);
+		} else {
+			printf_debug("Error setting enviroment var.\n");
+		}
+	}
 }
 
 // opens the file in which the stdin/stdout/stderr
@@ -96,19 +120,10 @@ exec_cmd(struct cmd *cmd)
 	switch (cmd->type) {
 	case EXEC:
 		// spawns a command
-		int fk = fork();
-		if (fk == -1) {
-			perror("error al crear el fork");
-			exit(-1);
-		}
-
-		if (fk == 0) {
-			e = (struct execcmd *) cmd;
-			execvp(e->argv[0], e->argv);
-			perror("execvp");
-			exit(-1);
-		} else
-			wait(NULL);
+		e = (struct execcmd *) cmd;
+		execvp(e->argv[0], e->argv);
+		perror("execvp");
+		exit(-1);
 
 		break;
 
@@ -124,6 +139,7 @@ exec_cmd(struct cmd *cmd)
 		}
 
 		if (fk == 0) {
+			// child process
 			b = (struct backcmd *) cmd;
 			e = (struct execcmd *) b->c;
 			printf("[PID=%d]\n", getpid());
@@ -132,7 +148,8 @@ exec_cmd(struct cmd *cmd)
 			perror("execvp");
 			exit(-1);
 		} else {
-			waitpid(fk, NULL, WNOHANG);
+			// father process
+			waitpid(fk, NULL, WNOHANG);  // TODO: Fix this
 		}
 
 		// printf("Background process are not yet implemented\n");
@@ -141,78 +158,94 @@ exec_cmd(struct cmd *cmd)
 	}
 
 	case REDIR: {
-		// changes the input/output/stderr flow
+		// Changes the input/output/stderr flow
 		//
-		// To check if a redirection has to be performed
-		// verify if file name's length (in the execcmd struct)
+		// To check if a redirection has to be performed,
+		// verify if the file name's length (in the execcmd struct)
 		// is greater than zero
-		//
-		// Your code here
+
 		r = (struct execcmd *) cmd;
+		set_environ_vars(r->eargv, r->eargc);
 
-		printf("type: %d\n", r->type);
-		printf("pid: %d\n", r->pid);
-		printf("scmd: %s\n", r->scmd);
-		printf("argc: %d\n", r->argc);
-		printf("eargc: %d\n", r->eargc);
+		// printf("type: %d\n", r->type);
+		// printf("pid: %d\n", r->pid);
+		// printf("scmd: %s\n", r->scmd);
+		// printf("argc: %d\n", r->argc);
+		// printf("eargc: %d\n", r->eargc);
 
-		// Imprimir los elementos del arreglo argv
-		printf("argv:\n");
-		for (int i = 0; i < r->argc; i++) {
-			printf("\targv[%d]: %s\n", i, r->argv[i]);
-		}
+		// // Imprimir los elementos del arreglo argv
+		// printf("argv:\n");
+		// for (int i = 0; i < r->argc; i++) {
+		// 	printf("\targv[%d]: %s\n", i, r->argv[i]);
+		// }
 
-		// Imprimir los elementos del arreglo eargv
-		printf("eargv:\n");
-		for (int i = 0; i < r->eargc; i++) {
-			printf("\teargv[%d]: %s\n", i, r->eargv[i]);
-		}
+		// // Imprimir los elementos del arreglo eargv
+		// printf("eargv:\n");
+		// for (int i = 0; i < r->eargc; i++) {
+		// 	printf("\teargv[%d]: %s\n", i, r->eargv[i]);
+		// }
 
-		printf("out_file: %s\n", r->out_file);
-		printf("in_file: %s\n", r->in_file);
-		printf("err_file: %s\n", r->err_file);
+		// printf("out_file: %s\n", r->out_file);
+		// printf("in_file: %s\n", r->in_file);
+		// printf("err_file: %s\n", r->err_file);
 
+		int input_fd = -1;
+		int output_fd = -1;
+		int error_fd = -1;
 
-		if (strlen(r->out_file) > 0 && strlen(r->err_file) == 0) {
-			int fd_abierto = open_redir_fd(r->out_file, O_RDWR);
-			printf("El fd abierto es %d\n", fd_abierto);
-			dup2(fd_abierto, 1);
-			close(fd_abierto);
-			execvp(r->argv[0], r->argv);
-		} else if (strlen(r->in_file) > 0) {
-			int fd_abierto = open_redir_fd(r->in_file, O_RDONLY);
-			printf("El fd abierto es%d\n", fd_abierto);
-			dup2(fd_abierto, 0);
-			close(fd_abierto);
-			execvp(r->argv[0], r->argv);
-		} else if (strlen(r->err_file) > 0 && strlen(r->out_file) > 0) {
-			int index = block_contains(r->err_file, '&');
-			printf("El index es %d\n", index);
-			if (index == 0) {
-				int fd = open_redir_fd(r->out_file, O_RDWR);
-				dup2(fd, STDOUT_FILENO);
-				dup2(fd, STDERR_FILENO);
-				close(fd);
-				execvp(r->argv[0], r->argv);
-				_exit(1);
-				return;
+		// Redirect input (stdin)
+		if (strlen(r->in_file) > 0) {
+			// O_RDONLY = read only
+			input_fd = open_redir_fd(r->in_file, O_RDONLY);
+			if (input_fd < 0) {
+				perror("open");
+				exit(EXIT_FAILURE);
 			}
-
-			int fd_abierto = open_redir_fd(r->err_file, O_RDWR);
-			printf("El fd abierto es %d\n", fd_abierto);
-			dup2(fd_abierto, 2);
-
-			int fd_abierto2 = open_redir_fd(r->out_file, O_RDWR);
-			printf("El fd abierto es %d\n", fd_abierto2);
-			dup2(fd_abierto2, 1);
-
-			close(fd_abierto);
-			close(fd_abierto2);
-			execvp(r->argv[0], r->argv);
 		}
-		_exit(1);
+
+		// Redirect output (stdout)
+		if (strlen(r->out_file) > 0) {
+			// O_WRONLY = write only
+			output_fd = open_redir_fd(r->out_file, O_WRONLY);
+
+			if (output_fd < 0) {
+				perror("open");
+				exit(EXIT_FAILURE);
+			}
+		}
+
+		// Redirect errors (stderr)
+		if (strlen(r->err_file) > 0) {
+			error_fd = open_redir_fd(r->err_file, O_WRONLY);
+
+			if (error_fd < 0) {
+				perror("open");
+				exit(EXIT_FAILURE);
+			}
+		}
+
+
+		if (input_fd != -1) {
+			dup2(input_fd, STDIN_FILENO);
+			close(input_fd);
+		}
+
+		if (output_fd != -1) {
+			dup2(output_fd, STDOUT_FILENO);
+			close(output_fd);
+		}
+
+		if (error_fd != -1) {
+			dup2(error_fd, STDERR_FILENO);
+			close(error_fd);
+		}
+
+		execvp(r->argv[0], r->argv);
+		perror("execvp");
+
 		break;
 	}
+
 
 	case PIPE: {
 		p = (struct pipecmd *) cmd;
