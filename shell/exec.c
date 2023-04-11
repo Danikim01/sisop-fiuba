@@ -209,14 +209,14 @@ exec_cmd(struct cmd *cmd)
 	}
 
 	case REDIR: {
-		// Changes the input/output/stderr flow
+		// changes the input/output/stderr flow
 		//
-		// To check if a redirection has to be performed,
-		// verify if the file name's length (in the execcmd struct)
+		// To check if a redirection has to be performed
+		// verify if file name's length (in the execcmd struct)
 		// is greater than zero
-
+		//
+		// Your code here
 		r = (struct execcmd *) cmd;
-		set_environ_vars(r->eargv, r->eargc);
 
 		printf("type: %d\n", r->type);
 		printf("pid: %d\n", r->pid);
@@ -240,72 +240,49 @@ exec_cmd(struct cmd *cmd)
 		printf("in_file: %s\n", r->in_file);
 		printf("err_file: %s\n", r->err_file);
 
-		int input_fd = -1;
-		int output_fd = -1;
-		int error_fd = -1;
 
-
-		// Redirect input (stdin)
-		if (strlen(r->in_file) > 0) {
-			// O_RDONLY = read only
-			input_fd = open_redir_fd(r->in_file, O_RDONLY);
-			if (input_fd < 0) {
-				perror("open");
-				exit(EXIT_FAILURE);
+		if(strlen(r->out_file) > 0 && strlen(r->err_file) == 0){
+			int fd_abierto = open_redir_fd(r->out_file,O_RDWR);
+			printf("El fd abierto es %d\n",fd_abierto);
+			dup2(fd_abierto,1);
+			close(fd_abierto);
+			execvp(r->argv[0], r->argv);
+			perror("execvp");
+		}else if(strlen(r->in_file) > 0){
+			int fd_abierto = open_redir_fd(r->in_file,O_RDONLY);
+			printf("El fd abierto es%d\n",fd_abierto);
+			dup2(fd_abierto,0);
+			close(fd_abierto);
+			execvp(r->argv[0], r->argv);
+			perror("execvp");
+		}else if(strlen(r->err_file) > 0 && strlen(r->out_file) > 0){
+			
+			int index = block_contains(r->err_file, '&');
+			printf("El index es %d\n",index);
+			if(index == 0){
+				int fd = open_redir_fd(r->out_file, O_RDWR);
+				dup2(fd, STDOUT_FILENO);
+				dup2(fd, STDERR_FILENO);
+				close(fd);
+				execvp(r->argv[0], r->argv);
+				perror("execvp");
 			}
+			
+			int fd_abierto = open_redir_fd(r->err_file,O_RDWR);
+			printf("El fd abierto es %d\n", fd_abierto);
+			dup2(fd_abierto, 2);
+
+			int fd_abierto2 = open_redir_fd(r->out_file,O_RDWR);
+			printf("El fd abierto es %d\n",fd_abierto2);
+			dup2(fd_abierto2,1);
+
+			close(fd_abierto);
+			close(fd_abierto2);
+			execvp(r->argv[0], r->argv);
+			perror("execvp");
+			
 		}
-
-		// Redirect output (stdout)
-		if (strlen(r->out_file) > 0) {
-			// O_WRONLY = write only
-			output_fd = open_redir_fd(r->out_file, O_WRONLY);
-
-			if (output_fd < 0) {
-				perror("open");
-				exit(EXIT_FAILURE);
-			}
-		}
-
-		// Redirect errors (stderr)
-		if (strlen(r->err_file) > 0) {
-			error_fd = open_redir_fd(r->err_file, O_WRONLY);
-
-			if (error_fd < 0) {
-				perror("open");
-				exit(EXIT_FAILURE);
-			}
-		}
-
-		if (input_fd != -1) {
-			dup2(input_fd, STDIN_FILENO);
-			close(input_fd);
-		}
-		
-		if (output_fd != -1 && error_fd == -1) {
-			dup2(output_fd, STDOUT_FILENO);
-			close(output_fd);
-		}
-		
-		if (error_fd != -1) {
-			int index = block_contains(r->err_file,'&1');
-			if(output_fd != -1 && index == 1){
-				dup2(output_fd, STDOUT_FILENO);
-				dup2(output_fd, STDERR_FILENO);
-				close(output_fd);
-			}else if(output_fd != -1){
-				dup2(output_fd, STDOUT_FILENO);
-				dup2(error_fd, STDERR_FILENO);
-				close(output_fd);
-				close(error_fd);
-			}else{
-				dup2(error_fd, STDERR_FILENO);
-				close(error_fd);
-			}
-		}
-
-		execvp(r->argv[0], r->argv);
-		perror("execvp");
-
+    	_exit(1);
 		break;
 	}
 
