@@ -244,6 +244,7 @@ exec_cmd(struct cmd *cmd)
 		int output_fd = -1;
 		int error_fd = -1;
 
+
 		// Redirect input (stdin)
 		if (strlen(r->in_file) > 0) {
 			// O_RDONLY = read only
@@ -275,27 +276,31 @@ exec_cmd(struct cmd *cmd)
 			}
 		}
 
-
 		if (input_fd != -1) {
 			dup2(input_fd, STDIN_FILENO);
 			close(input_fd);
 		}
-
-		if (output_fd != -1) {
+		
+		if (output_fd != -1 && error_fd == -1) {
 			dup2(output_fd, STDOUT_FILENO);
 			close(output_fd);
 		}
-
+		
 		if (error_fd != -1) {
-			dup2(error_fd, STDERR_FILENO);
-			close(error_fd);
-		}
-
-		if (input_fd != -1 && error_fd != -1) {
-			dup2(input_fd, STDOUT_FILENO);
-			dup2(error_fd, STDERR_FILENO);
-			close(input_fd);
-			close(error_fd);
+			int index = block_contains(r->err_file,'&1');
+			if(output_fd != -1 && index == 1){
+				dup2(output_fd, STDOUT_FILENO);
+				dup2(output_fd, STDERR_FILENO);
+				close(output_fd);
+			}else if(output_fd != -1){
+				dup2(output_fd, STDOUT_FILENO);
+				dup2(error_fd, STDERR_FILENO);
+				close(output_fd);
+				close(error_fd);
+			}else{
+				dup2(error_fd, STDERR_FILENO);
+				close(error_fd);
+			}
 		}
 
 		execvp(r->argv[0], r->argv);
