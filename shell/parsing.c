@@ -184,8 +184,8 @@ parse_cmd(char *buf_cmd)
 	return parse_exec(buf_cmd);
 }
 
-//parses the command line
-//looking for the pipe character '|'
+// parses the command line
+// looking for the pipe character '|'
 
 // struct cmd *
 // parse_line(char *buf)
@@ -197,13 +197,11 @@ parse_cmd(char *buf_cmd)
 // 	l = parse_cmd(buf);
 
 
-
 // 	r = parse_cmd(right);
 
 
 // 	return pipe_cmd_create(l, r);
 // }
-
 
 
 struct cmd *
@@ -219,8 +217,4 @@ parse_line(char *buf)
 		r = parse_line(right);
 
 	return pipe_cmd_create(l, r);
-
 }
-
-
-
