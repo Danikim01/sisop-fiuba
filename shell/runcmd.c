@@ -57,10 +57,17 @@ run_cmd(char *cmd)
 	//
 	// Your code here
 
-	// waits for the process to finish
-	waitpid(p, &status, 0);
+	//Antes de cada prompt, checkea si algun hijo temrino (pid = -1)
+	waitpid(-1, &status, WNOHANG);
 
-	print_status_info(parsed);
+	if (parsed->type == BACK) {
+		//Imprimo la info del proceso corriendo en back
+		print_back_info(parsed);
+	} else {
+		// waits for the process to finish
+		waitpid(p, &status, 0);
+		print_status_info(parsed);
+	}
 
 	free_command(parsed);
 

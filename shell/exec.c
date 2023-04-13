@@ -216,29 +216,9 @@ exec_cmd(struct cmd *cmd)
 
 	case BACK: {
 		// runs a command in background
+		b = (struct backcmd *) cmd;
+		exec_cmd(b->c);
 
-		int fk = fork();
-		if (fk == -1) {
-			perror("fork");
-			exit(-1);
-		}
-
-		if (fk == 0) {
-			// child process
-			b = (struct backcmd *) cmd;
-			e = (struct execcmd *) cmd;
-			printf_debug("[PID=%d]\n", b->pid);
-			execvp(e->argv[0], e->argv);
-
-			printf_debug("execvp");
-			exit(-1);
-		} else {
-			// father process
-			waitpid(fk, NULL, WNOHANG);  // TODO: Fix this
-		}
-
-		// printf("Background process are not yet implemented\n");
-		// _exit(-1);
 		break;
 	}
 
