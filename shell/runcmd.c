@@ -57,11 +57,11 @@ run_cmd(char *cmd)
 	//
 	// Your code here
 
-	//Antes de cada prompt, checkea si algun hijo temrino (pid = -1)
+	// Antes de cada prompt, checkea si algun hijo temrino (pid = -1)
 	waitpid(-1, &status, WNOHANG);
 
 	if (parsed->type == BACK) {
-		//Imprimo la info del proceso corriendo en back
+		// Imprimo la info del proceso corriendo en back
 		print_back_info(parsed);
 	} else {
 		// waits for the process to finish
