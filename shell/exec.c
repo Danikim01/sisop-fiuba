@@ -107,15 +107,13 @@ static int
 open_redir_fd(char *file, int flags)
 {
 	int fd = open(file,
-				flags | O_CLOEXEC |
-						((flags == O_WRONLY)
-								? (O_CREAT | O_TRUNC)
-								: 0),
-				S_IRUSR | S_IWUSR);
+	              flags | O_CLOEXEC |
+	                      ((flags == O_WRONLY) ? (O_CREAT | O_TRUNC) : 0),
+	              S_IRUSR | S_IWUSR);
 	if (fd == -1) {
 		fprintf_debug(stderr,
-					"ERROR: Failed opening redirection"
-					"file descriptor in open_redir_fd()\n");
+		              "ERROR: Failed opening redirection"
+		              "file descriptor in open_redir_fd()\n");
 	}
 
 	return fd;
@@ -250,18 +248,20 @@ exec_cmd(struct cmd *cmd)
 			output_fd = open_redir_fd(r->out_file, O_WRONLY);
 
 			if (output_fd < 0) {
-				fprintf_debug(stderr,
+				fprintf_debug(
+				        stderr,
 				        "ERROR: Failed opening output file\n");
 				exit(EXIT_FAILURE);
 			}
 		}
 
 		// Redirect errors (stderr)
-		if (strlen(r->err_file) > 0 && strcmp(r->err_file, "&1") != 0 ) {
-			error_fd = open_redir_fd(r->err_file, O_WRONLY); //Falla
+		if (strlen(r->err_file) > 0 && strcmp(r->err_file, "&1") != 0) {
+			error_fd = open_redir_fd(r->err_file, O_WRONLY);  // Falla
 
 			if (error_fd < 0) {
-				fprintf_debug(stderr,
+				fprintf_debug(
+				        stderr,
 				        "ERROR: Failed opening error file\n");
 				exit(EXIT_FAILURE);
 			}
@@ -282,7 +282,7 @@ exec_cmd(struct cmd *cmd)
 		if (output_fd != -1) {
 			dup2(output_fd, STDOUT_FILENO);
 			close(output_fd);
-		} 
+		}
 
 		if (input_fd != -1) {
 			dup2(input_fd, STDIN_FILENO);
