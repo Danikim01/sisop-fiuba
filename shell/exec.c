@@ -107,13 +107,15 @@ static int
 open_redir_fd(char *file, int flags)
 {
 	int fd = open(file,
-	              flags | O_CLOEXEC |
-	                      ((flags == O_RDONLY || strcmp("&1", file) == 0)
-	                               ? 0
-	                               : O_CREAT | O_TRUNC),
-	              S_IRUSR | S_IWUSR);
+				flags | O_CLOEXEC |
+						((flags == O_WRONLY)
+								? (O_CREAT | O_TRUNC)
+								: 0),
+				S_IRUSR | S_IWUSR);
 	if (fd == -1) {
-		fprintf_debug(stderr, "ERROR: Open failed:\n");
+		fprintf_debug(stderr,
+					"ERROR: Failed opening redirection"
+					"file descriptor in open_redir_fd()\n");
 	}
 
 	return fd;
@@ -236,7 +238,8 @@ exec_cmd(struct cmd *cmd)
 		if (strlen(r->in_file) > 0) {
 			input_fd = open_redir_fd(r->in_file, O_RDONLY);
 			if (input_fd < 0) {
-				fprintf(stderr, "ERROR: Open failed:\n");
+				fprintf(stderr,
+				        "ERROR: Falied opening input file\n");
 				exit(EXIT_FAILURE);
 			}
 		}
@@ -247,51 +250,47 @@ exec_cmd(struct cmd *cmd)
 			output_fd = open_redir_fd(r->out_file, O_WRONLY);
 
 			if (output_fd < 0) {
-				fprintf(stderr, "ERROR: Open failed:\n");
+				fprintf_debug(stderr,
+				        "ERROR: Failed opening output file\n");
 				exit(EXIT_FAILURE);
 			}
 		}
 
 		// Redirect errors (stderr)
-		if (strlen(r->err_file) > 0) {
-			error_fd = open_redir_fd(r->err_file, O_RDWR);
+		if (strlen(r->err_file) > 0 && strcmp(r->err_file, "&1") != 0 ) {
+			error_fd = open_redir_fd(r->err_file, O_WRONLY); //Falla
 
 			if (error_fd < 0) {
-				fprintf(stderr, "ERROR: Open failed:\n");
+				fprintf_debug(stderr,
+				        "ERROR: Failed opening error file\n");
 				exit(EXIT_FAILURE);
 			}
 		}
 
-		if (output_fd != -1 && error_fd != -1) {
-			dup2(output_fd, STDOUT_FILENO);
-			if (block_contains(r->err_file, '&') == 0) {
+		bool special_case = block_contains(r->err_file, '&') == 0;
+		if (error_fd != -1 || special_case) {
+			if (special_case) {
 				// Caso ls > out.txt 2>&1
 				dup2(output_fd, STDERR_FILENO);
 			} else {
 				// Caso ls > out.txt 2>err.txt
 				dup2(error_fd, STDERR_FILENO);
+				close(error_fd);
 			}
-			close(output_fd);
-			close(error_fd);
-
-		} else if (output_fd != -1) {
-			// Caso ls > out.txt
-			dup2(output_fd, STDOUT_FILENO);
-			close(output_fd);
-		} else if (error_fd != -1) {
-			// ls 2>err.txt
-			dup2(error_fd, STDERR_FILENO);
-			close(error_fd);
 		}
 
+		if (output_fd != -1) {
+			dup2(output_fd, STDOUT_FILENO);
+			close(output_fd);
+		} 
+
 		if (input_fd != -1) {
-			// Cualquiera de los casos de arriba mezclado con <,
-			// o exclusivamente <
 			dup2(input_fd, STDIN_FILENO);
 			close(input_fd);
 		}
+
 		execvp(r->argv[0], r->argv);
-		fprintf(stderr, "ERROR: execvp failed\n");
+		fprintf_debug(stderr, "ERROR: execvp failed\n");
 		exit(EXIT_FAILURE);
 
 		break;
