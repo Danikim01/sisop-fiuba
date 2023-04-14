@@ -18,7 +18,50 @@ Si se detecta que un comando tiene que se ejecutado en segundo plano, lo que se 
 
 ### Flujo estándar
 
----
+**Pregunta:** 
+1 - Investigar el significado de 2>&1, explicar cómo funciona su forma general
+2 - Mostrar qué sucede con la salida de cat out.txt en el ejemplo.
+3 - Luego repetirlo, invirtiendo el orden de las redirecciones (es decir, 2>&1 >out.txt). ¿Cambió algo? Compararlo con el comportamiento en bash(1)
+
+1 - 2>&1 Redirige stderr a stdout
+2- Ocurre lo siguiente:
+```
+~$ ls -C /home /noexiste >out.txt 2>&1
+~$ cat out.txt
+ls: cannot access '/noexiste': No such file or directory
+/home:
+lost+found  nehuen
+```
+3 - 
+En cambio en nuestra terminal:
+
+```
+ (/home/nehuen) 
+$ rm out.txt
+        Program: [rm out.txt] exited, status: 0 
+ (/home/nehuen) 
+$ ls /home /noexiste 2>&1 >out.txt
+        Program: [ls /home /noexiste 2>&1 >out.txt] exited, status: 2 
+ (/home/nehuen) 
+$ cat out.txt
+ls: cannot access '/noexiste': No such file or directory
+/home:
+lost+found
+nehuen
+```
+
+Como se redirige el stderr al stdout antes de hacer `>out.txt` entonces lo que ocurre es que se redirige a stdout la salida de stderr de haber hecho `ls /noexiste`, y tanto la salida de haber hecho `ls /home` como la de `ls /noexiste` van a `out.txt` ya que se redirigió el stdout del comando `ls /home /noexiste` a ese archivo habiendo hecho `>out.txt`.
+
+
+En cambio, ocurre lo siguiente en `bash(1)`:
+
+```
+~$ ls -C /home /noexiste 2>&1 >out.txt
+ls: cannot access '/noexiste': No such file or directory
+~$ cat out.txt
+/home:
+lost+found  nehuen
+```
 
 ### Tuberías múltiples
 
