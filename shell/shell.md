@@ -33,7 +33,7 @@ ls: cannot access '/noexiste': No such file or directory
 lost+found  nehuen
 ```
 3 - 
-En cambio en nuestra terminal:
+En nuestra terminal, ocurre lo siguiente:
 
 ```
  (/home/nehuen) 
