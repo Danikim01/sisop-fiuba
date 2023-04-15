@@ -8,9 +8,9 @@ int
 exit_shell(char *cmd)
 {
 	if (strncmp(cmd, "exit", 4) == 0) {
-        return 1;
-    }
-    return 0;
+		return 1;
+	}
+	return 0;
 }
 
 // returns true if "chdir" was performed
@@ -29,29 +29,29 @@ int
 cd(char *cmd)
 {
 	if (strncmp(cmd, "cd", 2) == 0) {
-    	// las primeras dos letras son "cd"
-		printf("strlen(cmd) da como resultado:%d\n",(int)strlen(cmd));
-		if(strlen(cmd) == 3){
-			//entra en caso de que no haya un directorio especificado
+		// las primeras dos letras son "cd"
+		printf("strlen(cmd) da como resultado:%d\n", (int) strlen(cmd));
+		if (strlen(cmd) == 3) {
+			// entra en caso de que no haya un directorio especificado
 			const char *home_dir = getenv("HOME");
-			if(chdir(home_dir) == -1){
-			perror("Error");
-			return 0;
+			if (chdir(home_dir) == -1) {
+				perror("Error");
+				return 0;
 			}
-		}else{
-			//salto al directorio
-			char* directorio = cmd + 3;
-			printf("El directorio es %s\n",directorio);
-			if(chdir(directorio) == -1){
+		} else {
+			// salto al directorio
+			char *directorio = cmd + 3;
+			printf("El directorio es %s\n", directorio);
+			if (chdir(directorio) == -1) {
 				perror("Error");
 				return 0;
 			}
 		}
 
 
-		//falta actualizar el prompt con la nueva direccion cambiada (nose como hacerlo)
+		// falta actualizar el prompt con la nueva direccion cambiada (nose como hacerlo)
 
-		
+
 		return 1;
 	}
 
@@ -67,7 +67,7 @@ int
 pwd(char *cmd)
 {
 	// Your code here
-	if(strncmp(cmd, "pwd", 3) == 0){
+	if (strncmp(cmd, "pwd", 3) == 0) {
 		char cwd[BUFLEN];
 		if (getcwd(cwd, sizeof(cwd)) != NULL) {
 			printf_debug("%s\n", cwd);
