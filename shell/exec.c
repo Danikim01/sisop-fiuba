@@ -195,13 +195,13 @@ run_pipe_aux(struct pipecmd *p)
 {
 	int fd[2];
 	if (pipe(fd) < 0) {
-		perror("pipe");
+		fprintf_debug(stderr, "Pipe failed.\n");
 		return;
 	}
 
 	pid_t pid = fork();
 	if (pid < 0) {
-		perror("fork");
+		fprintf_debug(stderr, "Fork failed.\n");
 		return;
 	} else if (pid == 0) {
 		dup2(fd[WRITE], STDOUT_FILENO);
@@ -211,13 +211,13 @@ run_pipe_aux(struct pipecmd *p)
 		struct execcmd *left_cmd = (struct execcmd *) p->leftcmd;
 		execvp(left_cmd->argv[0], left_cmd->argv);
 
-		perror("execvp");
+		fprintf_debug(stderr, "Execvp failed.\n");
 		exit(EXIT_FAILURE);
 	}
 
 	pid_t pid2 = fork();
 	if (pid2 < 0) {
-		perror("fork");
+		fprintf_debug(stderr, "Fork failed.\n");
 		kill(pid, SIGKILL);
 		return;
 	} else if (pid2 == 0) {
@@ -231,7 +231,7 @@ run_pipe_aux(struct pipecmd *p)
 			struct execcmd *right_cmd = (struct execcmd *) p->rightcmd;
 			execvp(right_cmd->argv[0], right_cmd->argv);
 
-			perror("execvp");
+			fprintf_debug(stderr, "Execvp failed.\n");
 			exit(EXIT_FAILURE);
 		}
 	}
