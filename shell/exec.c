@@ -134,9 +134,9 @@ run_pipe(struct pipecmd *p)
 		perror("fork");
 		return;
 	} else if (pid == 0) {
-		close(fd[0]);
-		dup2(fd[1], STDOUT_FILENO);
-		close(fd[1]);
+		close(fd[READ]);
+		dup2(fd[WRITE], STDOUT_FILENO);
+		close(fd[WRITE]);
 
 		struct execcmd *left_cmd = (struct execcmd *) p->leftcmd;
 		printf_debug("El comando izquierdo a ejecutar es %s\n",
@@ -157,9 +157,9 @@ run_pipe(struct pipecmd *p)
 		kill(pid, SIGKILL);
 		return;
 	} else if (pid2 == 0) {
-		close(fd[1]);
-		dup2(fd[0], STDIN_FILENO);
-		close(fd[0]);
+		close(fd[WRITE]);
+		dup2(fd[READ], STDIN_FILENO);
+		close(fd[READ]);
 
 		if (p->rightcmd->type == PIPE) {
 			printf_debug("El comando derecho antes de la llamada "
@@ -184,8 +184,60 @@ run_pipe(struct pipecmd *p)
 		}
 	}
 
-	close(fd[0]);
-	close(fd[1]);
+	close(fd[READ]);
+	close(fd[WRITE]);
+	waitpid(pid, NULL, 0);
+	waitpid(pid2, NULL, 0);
+}
+
+void
+run_pipe_aux(struct pipecmd *p)
+{
+	int fd[2];
+	if (pipe(fd) < 0) {
+		perror("pipe");
+		return;
+	}
+
+	pid_t pid = fork();
+	if (pid < 0) {
+		perror("fork");
+		return;
+	} else if (pid == 0) {
+		dup2(fd[WRITE], STDOUT_FILENO);
+		close(fd[WRITE]);
+		close(fd[READ]);
+
+		struct execcmd *left_cmd = (struct execcmd *) p->leftcmd;
+		execvp(left_cmd->argv[0], left_cmd->argv);
+
+		perror("execvp");
+		exit(EXIT_FAILURE);
+	}
+
+	pid_t pid2 = fork();
+	if (pid2 < 0) {
+		perror("fork");
+		kill(pid, SIGKILL);
+		return;
+	} else if (pid2 == 0) {
+		close(fd[WRITE]);
+		dup2(fd[READ], STDIN_FILENO);
+		close(fd[READ]);
+
+		if (p->rightcmd->type == PIPE) {
+			run_pipe_aux((struct pipecmd *) p->rightcmd);
+		} else {
+			struct execcmd *right_cmd = (struct execcmd *) p->rightcmd;
+			execvp(right_cmd->argv[0], right_cmd->argv);
+
+			perror("execvp");
+			exit(EXIT_FAILURE);
+		}
+	}
+
+	close(fd[READ]);
+	close(fd[WRITE]);
 	waitpid(pid, NULL, 0);
 	waitpid(pid2, NULL, 0);
 }
@@ -210,8 +262,11 @@ exec_cmd(struct cmd *cmd)
 		// TODO: later add env var
 		//  spawns a command
 		e = (struct execcmd *) cmd;
+
+		printf_debug("exec: %s\n", e->argv[0]);
+
 		execvp(e->argv[0], e->argv);
-		perror("execvp");
+		perror("exec execvp");
 		exit(-1);
 
 		break;
@@ -298,68 +353,15 @@ exec_cmd(struct cmd *cmd)
 
 	case PIPE: {
 		// p = (struct pipecmd *) cmd;
-		multi_pipes(p);
-		run_pipe(cmd);
-		// int fd[2];
-		// if (pipe(fd) < 0) {
-		// 	perror("pipe");
-		// 	return;
-		// }
+		// multi_pipes(p);
+		int original_stdin = dup(STDIN_FILENO);
+		int original_stdout = dup(STDOUT_FILENO);
 
-		// int left_pid = fork();
-		// if (left_pid < 0) {
-		// 	perror("fork");
-		// 	return;
-		// } else if (left_pid == 0) {  // hijo izquierdo
-		// 	close(fd[0]);  // cierra extremo de lectura del pipe
-		// 	dup2(fd[1], STDOUT_FILENO);
-		// 	close(fd[1]);  // cierra extremo de escritura del pipe
+		p = (struct pipecmd *) cmd;
+		run_pipe_aux(p);
 
-		// 	struct execcmd *left_cmd = (struct execcmd *) p->leftcmd;
-		// 	execvp(left_cmd->argv[0], left_cmd->argv);
-		// 	perror("execvp");  // si falla execvp, termina el proceso hijo izquierdo
-		// 	exit(EXIT_FAILURE);
-		// }
-
-		// int right_pid = fork();
-		// if (right_pid < 0) {
-		// 	perror("fork");
-		// 	kill(left_pid,
-		// 	     SIGKILL);  // si falla fork, mata al hijo izquierdo
-		// 	return;
-		// } else if (right_pid == 0) {  // hijo derecho
-		// 	close(fd[1]);  // cierra extremo de escritura del pipe
-		// 	dup2(fd[0], STDIN_FILENO);
-		// 	close(fd[0]);  // cierra extremo de lectura del pipe
-
-		// 	struct execcmd *right_cmd = (struct execcmd *) p->rightcmd;
-		// 	execvp(right_cmd->argv[0], right_cmd->argv);
-		// 	perror("execvp");  // si falla execvp, termina el proceso hijo derecho
-		// 	exit(EXIT_FAILURE);
-		// }
-
-		// // proceso padre
-		// close(fd[0]);  // cierra extremo de lectura del pipe
-		// close(fd[1]);  // cierra extremo de escritura del pipe
-		// waitpid(left_pid, NULL, 0);  // espera a que el hijo izquierdo termine
-		// waitpid(right_pid, NULL, 0);  // espera a que el hijo derecho termine
-
-		// break;
-
-
-		// struct pipecmd *left_cmd = (struct pipecmd *)p->leftcmd;
-		// struct pipecmd *right_cmd = (struct pipecmd *)p->rightcmd;
-
-		// printf("%s\n",left_cmd->scmd);
-		// printf("%s\n",right_cmd->scmd);
-
-		// struct pipecmd *nieto = right_cmd->rightcmd;
-
-		// printf("%s\n",nieto->scmd);
-
-		// struct pipecmd *nieto_nieto = nieto->rightcmd;
-
-		// printf("%s\n",nieto_nieto->scmd);
+		dup2(original_stdin, STDIN_FILENO);
+		dup2(original_stdout, STDOUT_FILENO);
 		break;
 	}
 	}
