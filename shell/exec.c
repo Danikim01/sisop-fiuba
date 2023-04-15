@@ -199,47 +199,55 @@ run_pipe_aux(struct pipecmd *p)
 		return;
 	}
 
-	pid_t pid = fork();
-	if (pid < 0) {
+	pid_t left = fork();
+	if (left < 0) {
 		fprintf_debug(stderr, "Fork failed.\n");
 		return;
-	} else if (pid == 0) {
+	}
+	if (left == 0) {
+		// Child Process
 		dup2(fd[WRITE], STDOUT_FILENO);
 		close(fd[WRITE]);
 		close(fd[READ]);
 
-		struct execcmd *left_cmd = (struct execcmd *) p->leftcmd;
-		execvp(left_cmd->argv[0], left_cmd->argv);
+		fprintf("STRING: %s", p->leftcmd->scmd);
+		exec_cmd(p->leftcmd);
 
-		fprintf_debug(stderr, "Execvp failed.\n");
-		exit(EXIT_FAILURE);
+		// struct execcmd *left_cmd = (struct execcmd *) p->leftcmd;
+		// execvp(left_cmd->argv[0], left_cmd->argv);
+
+		// fprintf_debug(stderr, "Execvp failed.\n");
+		// exit(EXIT_FAILURE);
 	}
+	waitpid(left, NULL, 0);
 
-	pid_t pid2 = fork();
-	if (pid2 < 0) {
+	pid_t right = fork();
+	if (right < 0) {
 		fprintf_debug(stderr, "Fork failed.\n");
-		kill(pid, SIGKILL);
+		kill(left, SIGKILL);
 		return;
-	} else if (pid2 == 0) {
-		close(fd[WRITE]);
+	}
+	if (right == 0) {
 		dup2(fd[READ], STDIN_FILENO);
+		close(fd[WRITE]);
 		close(fd[READ]);
 
-		if (p->rightcmd->type == PIPE) {
-			run_pipe_aux((struct pipecmd *) p->rightcmd);
-		} else {
-			struct execcmd *right_cmd = (struct execcmd *) p->rightcmd;
-			execvp(right_cmd->argv[0], right_cmd->argv);
+		fprintf("STRING: %s", p->rightcmd->scmd);
+		exec_cmd(p->rightcmd);
+		// if (p->rightcmd->type == PIPE) {
+		// 	run_pipe_aux((struct pipecmd *) p->rightcmd);
+		// } else {
+		// 	struct execcmd *right_cmd = (struct execcmd *)
+		// p->rightcmd; 	execvp(right_cmd->argv[0], right_cmd->argv);
 
-			fprintf_debug(stderr, "Execvp failed.\n");
-			exit(EXIT_FAILURE);
-		}
+		// fprintf_debug(stderr, "Execvp failed.\n");
+		// exit(EXIT_FAILURE);
 	}
+	waitpid(right, NULL, 0);
+
 
 	close(fd[READ]);
 	close(fd[WRITE]);
-	waitpid(pid, NULL, 0);
-	waitpid(pid2, NULL, 0);
 }
 
 // executes a command - does not return
@@ -262,8 +270,6 @@ exec_cmd(struct cmd *cmd)
 		// TODO: later add env var
 		//  spawns a command
 		e = (struct execcmd *) cmd;
-
-		printf_debug("exec: %s\n", e->argv[0]);
 
 		execvp(e->argv[0], e->argv);
 		perror("exec execvp");
@@ -312,7 +318,8 @@ exec_cmd(struct cmd *cmd)
 
 		// Redirect errors (stderr)
 		if (strlen(r->err_file) > 0 && strcmp(r->err_file, "&1") != 0) {
-			error_fd = open_redir_fd(r->err_file, O_WRONLY);  // Falla
+			error_fd = open_redir_fd(r->err_file,
+			                         O_WRONLY);  // Falla
 
 			if (error_fd < 0) {
 				fprintf_debug(
@@ -352,13 +359,13 @@ exec_cmd(struct cmd *cmd)
 	}
 
 	case PIPE: {
-		int original_stdin = dup(STDIN_FILENO);
-		int original_stdout = dup(STDOUT_FILENO);
+		// int original_stdin = dup(STDIN_FILENO);
+		// int original_stdout = dup(STDOUT_FILENO);
 
 		run_pipe_aux(cmd);
 
-		dup2(original_stdin, STDIN_FILENO);
-		dup2(original_stdout, STDOUT_FILENO);
+		// dup2(original_stdin, STDIN_FILENO);
+		// dup2(original_stdout, STDOUT_FILENO);
 
 		exit(EXIT_SUCCESS);
 		break;
