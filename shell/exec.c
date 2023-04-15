@@ -210,16 +210,8 @@ run_pipe_aux(struct pipecmd *p)
 		close(fd[WRITE]);
 		close(fd[READ]);
 
-		fprintf("STRING: %s", p->leftcmd->scmd);
 		exec_cmd(p->leftcmd);
-
-		// struct execcmd *left_cmd = (struct execcmd *) p->leftcmd;
-		// execvp(left_cmd->argv[0], left_cmd->argv);
-
-		// fprintf_debug(stderr, "Execvp failed.\n");
-		// exit(EXIT_FAILURE);
 	}
-	waitpid(left, NULL, 0);
 
 	pid_t right = fork();
 	if (right < 0) {
@@ -232,22 +224,15 @@ run_pipe_aux(struct pipecmd *p)
 		close(fd[WRITE]);
 		close(fd[READ]);
 
-		fprintf("STRING: %s", p->rightcmd->scmd);
 		exec_cmd(p->rightcmd);
-		// if (p->rightcmd->type == PIPE) {
-		// 	run_pipe_aux((struct pipecmd *) p->rightcmd);
-		// } else {
-		// 	struct execcmd *right_cmd = (struct execcmd *)
-		// p->rightcmd; 	execvp(right_cmd->argv[0], right_cmd->argv);
-
-		// fprintf_debug(stderr, "Execvp failed.\n");
-		// exit(EXIT_FAILURE);
 	}
-	waitpid(right, NULL, 0);
 
 
 	close(fd[READ]);
 	close(fd[WRITE]);
+
+	waitpid(left, NULL, 0);
+	waitpid(right, NULL, 0);
 }
 
 // executes a command - does not return
@@ -359,15 +344,9 @@ exec_cmd(struct cmd *cmd)
 	}
 
 	case PIPE: {
-		// int original_stdin = dup(STDIN_FILENO);
-		// int original_stdout = dup(STDOUT_FILENO);
-
 		run_pipe_aux(cmd);
-
-		// dup2(original_stdin, STDIN_FILENO);
-		// dup2(original_stdout, STDOUT_FILENO);
-
 		exit(EXIT_SUCCESS);
+
 		break;
 	}
 	}

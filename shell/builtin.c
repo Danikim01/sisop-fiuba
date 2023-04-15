@@ -30,20 +30,20 @@ cd(char *cmd)
 {
 	if (strncmp(cmd, "cd", 2) == 0) {
 		// las primeras dos letras son "cd"
-		printf("strlen(cmd) da como resultado:%d\n", (int) strlen(cmd));
 		if (strlen(cmd) == 3) {
 			// entra en caso de que no haya un directorio especificado
 			const char *home_dir = getenv("HOME");
 			if (chdir(home_dir) == -1) {
-				perror("Error");
+				fprintf_debug("ERROR: Failed to set current "
+				              "directory to home.\n");
 				return 0;
 			}
 		} else {
 			// salto al directorio
 			char *directorio = cmd + 3;
-			printf("El directorio es %s\n", directorio);
 			if (chdir(directorio) == -1) {
-				perror("Error");
+				fprintf_debug("ERROR: Failed to set current "
+				              "directory to home.\n");
 				return 0;
 			}
 		}
@@ -72,7 +72,7 @@ pwd(char *cmd)
 		if (getcwd(cwd, sizeof(cwd)) != NULL) {
 			printf_debug("%s\n", cwd);
 		} else {
-			perror("getcwd() error");
+			fprintf_debug("ERROR: Getcwd failed.\n");
 		}
 		return 1;
 	}
