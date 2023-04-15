@@ -359,6 +359,8 @@ exec_cmd(struct cmd *cmd)
 
 		dup2(original_stdin, STDIN_FILENO);
 		dup2(original_stdout, STDOUT_FILENO);
+
+		exit(EXIT_SUCCESS);
 		break;
 	}
 	}
