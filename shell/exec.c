@@ -352,13 +352,10 @@ exec_cmd(struct cmd *cmd)
 	}
 
 	case PIPE: {
-		// p = (struct pipecmd *) cmd;
-		// multi_pipes(p);
 		int original_stdin = dup(STDIN_FILENO);
 		int original_stdout = dup(STDOUT_FILENO);
 
-		p = (struct pipecmd *) cmd;
-		run_pipe_aux(p);
+		run_pipe_aux(cmd);
 
 		dup2(original_stdin, STDIN_FILENO);
 		dup2(original_stdout, STDOUT_FILENO);
