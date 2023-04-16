@@ -94,7 +94,6 @@ set_environ_vars(char **eargv, int eargc)
 }
 
 
-
 // opens the file in which the stdin/stdout/stderr
 // flow will be redirected, and returns
 // the file descriptor
@@ -257,8 +256,8 @@ exec_cmd(struct cmd *cmd)
 		// TODO: later add env var
 		//  spawns a command
 		e = (struct execcmd *) cmd;
-		
-		//set_environ_vars(e->eargv,e->eargc);
+
+		// set_environ_vars(e->eargv,e->eargc);
 		execvp(e->argv[0], e->argv);
 		perror("exec execvp");
 		exit(-1);

@@ -104,64 +104,72 @@ expand_environ_var(char *arg)
 	// Your code here
 
 	if (arg[0] == '$') {
-		// the correct substitution with the environment value should be performed
-		// advance to the next character
-        arg++;
+		// the correct substitution with the environment value should be
+		// performed advance to the next character
+		arg++;
 
-        // get the environment variable name
-        char *auxiliar = arg;
+		// get the environment variable name
+		char *auxiliar = arg;
 		char *env_var_name = arg;
 
-		while(*auxiliar != '\0'){
+		while (*auxiliar != '\0') {
 			auxiliar++;
 		}
 
-        // iterate until the end of the environment variable name
-        while (isalnum(*arg) || (*arg == '_')) {
-    		arg++;
+		// iterate until the end of the environment variable name
+		while (isalnum(*arg) || (*arg == '_')) {
+			arg++;
 		}
 
-        // save the end position of the environment variable name
-        char *env_var_name_end = arg;
+		// save the end position of the environment variable name
+		char *env_var_name_end = arg;
 
-        // replace the environment variable name with the corresponding value
-        if (env_var_name_end > env_var_name) {
-            // copy the environment variable name into a null-terminated string
-            size_t env_var_len = env_var_name_end - env_var_name;
+		// replace the environment variable name with the corresponding value
+		if (env_var_name_end > env_var_name) {
+			// copy the environment variable name into a null-terminated string
+			size_t env_var_len = env_var_name_end - env_var_name;
 			char env_var[env_var_len + 1];
 			strncpy(env_var, env_var_name, env_var_len);
 			env_var[env_var_len] = '\0';
 
 
-			printf("El valor de env_var es:%s\n",env_var);
+			printf_debug("El valor de env_var es:%s\n", env_var);
 
-            // get the value of the environment variable
-            char *env_value = getenv(env_var);
+			// get the value of the environment variable
+			char *env_value = getenv(env_var);
 
-			printf("El valor de getenv(env_var) es %s\n",env_value);
+			printf_debug("El valor de getenv(env_var) es %s\n",
+			             env_value);
 
-            // copy the value into a new string
-            if (env_value != NULL) {
-                char *new_arg = malloc(strlen(env_value)+ (auxiliar - env_var_name_end) +1);
-                strcpy(new_arg, env_value);
-                strcat(new_arg, arg);
+			// copy the value into a new string
+			if (env_value != NULL) {
+				char *new_arg =
+				        malloc(strlen(env_value) +
+				               (auxiliar - env_var_name_end) + 1);
+				strcpy(new_arg, env_value);
+				strcat(new_arg, arg);
 
-				printf("Concateno %s con %s (arg)\n",new_arg,arg);
-                
-				printf("El nuevo argumento es %s\n",new_arg);
+				printf_debug("Concateno %s con %s (arg)\n",
+				             new_arg,
+				             arg);
+
+				printf_debug("El nuevo argumento es %s\n",
+				             new_arg);
 				return new_arg;
-            }else{
-				printf_debug("Error: la variable de entorno %s no existe\n", env_var);
-    			return strdup("");
+			} else {
+				printf_debug("Error: la variable de entorno %s "
+				             "no existe\n",
+				             env_var);
+				return strdup("");
 			}
-		}// if the environment variable name is empty, return an empty string
-        else {
-            return strdup("");
-        }
-	}// if the argument doesn't start with '$', just return the same argument
-    else {
-        return strdup(arg);
-    }
+		}  // if the environment variable name is empty, return an empty string
+		else {
+			return strdup("");
+		}
+	}  // if the argument doesn't start with '$', just return the same argument
+	else {
+		return strdup(arg);
+	}
 }
 
 // parses one single command having into account:
@@ -175,7 +183,7 @@ parse_exec(char *buf_cmd)
 	char *tok;
 	int idx = 0, argc = 0;
 
-	//expand_environ_var(buf_cmd);
+	// expand_environ_var(buf_cmd);
 
 	c = (struct execcmd *) exec_cmd_create(buf_cmd);
 
@@ -192,7 +200,7 @@ parse_exec(char *buf_cmd)
 		if (parse_environ_var(c, tok))
 			continue;
 
-		printf("El token es %s\n",tok);
+		printf_debug("El token es %s\n", tok);
 		tok = expand_environ_var(tok);
 
 		c->argv[argc++] = tok;

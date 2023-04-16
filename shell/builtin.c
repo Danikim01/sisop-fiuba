@@ -49,9 +49,9 @@ cd(char *cmd)
 		}
 
 		char cwd[BUFLEN];
-        if (getcwd(cwd, sizeof(cwd)) != NULL) {
-            // actualizar prompt con nueva direccion
-            snprintf(prompt, PRMTLEN, "%s%s", "", cwd);
+		if (getcwd(cwd, sizeof(cwd)) != NULL) {
+			// actualizar prompt con nueva direccion
+			snprintf(prompt, PRMTLEN, "%s%s", "", cwd);
 		}
 		return 1;
 	}
