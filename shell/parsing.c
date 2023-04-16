@@ -200,7 +200,7 @@ parse_exec(char *buf_cmd)
 		if (parse_environ_var(c, tok))
 			continue;
 
-		printf_debug("El token es %s\n", tok);
+		// printf_debug("El token es %s\n", tok);
 		tok = expand_environ_var(tok);
 
 		if (strlen(tok) > 0)

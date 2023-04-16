@@ -65,7 +65,43 @@ lost+found  nehuen
 
 ### Tuberías múltiples
 
----
+**Pregunta:**  Investigar qué ocurre con el exit code reportado por la shell si se ejecuta un pipe.
+
+En el archivo printstatus.c se ve que si el tipo del commando parseado es pipe, entonces la funcion no imprime nada, por lo tanto no se imprime por pantalla si un proceso de tipo pipe termino. Se puede ver en el siguiente ejemplo:
+
+```
+ (/home/nehuen) 
+$ ls | grep a | wc -w
+5
+ (/home/nehuen) 
+$ 
+```
+
+Se ve que no cambia en nada en la terminal normal:
+
+```
+~$ ls | grep a | wc -w
+5
+~$ 
+```
+
+Y si alguno de los commandos falla, el comportamiento tambien es igual en ambas, en nuestra shell:
+
+```
+ (/home/nehuen) 
+$ ls /noexiste | grep "a"
+ls: cannot access '/noexiste': No such file or directory
+ (/home/nehuen) 
+$ 
+```
+
+Y en la terminal normal:
+
+```
+~$ ls /noexiste | grep "a"
+ls: cannot access '/noexiste': No such file or directory
+~$ 
+```
 
 ### Variables de entorno temporarias
 
