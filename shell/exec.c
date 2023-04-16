@@ -120,79 +120,8 @@ open_redir_fd(char *file, int flags)
 	return fd;
 }
 
-
 void
 run_pipe(struct pipecmd *p)
-{
-	int fd[2];
-	if (pipe(fd) < 0) {
-		perror("pipe");
-		return;
-	}
-
-	pid_t pid = fork();
-	if (pid < 0) {
-		perror("fork");
-		return;
-	} else if (pid == 0) {
-		close(fd[READ]);
-		dup2(fd[WRITE], STDOUT_FILENO);
-		close(fd[WRITE]);
-
-		struct execcmd *left_cmd = (struct execcmd *) p->leftcmd;
-		printf_debug("El comando izquierdo a ejecutar es %s\n",
-		             left_cmd->argv[0]);
-		for (int i = 1; i < (left_cmd->argc); i++) {
-			printf_debug(
-			        "El argumento del comando izquierdo es: %s\n",
-			        left_cmd->argv[i]);
-		}
-		execvp(left_cmd->argv[0], left_cmd->argv);
-		perror("execvp");
-		exit(EXIT_FAILURE);
-	}
-
-	pid_t pid2 = fork();
-	if (pid2 < 0) {
-		perror("fork");
-		kill(pid, SIGKILL);
-		return;
-	} else if (pid2 == 0) {
-		close(fd[WRITE]);
-		dup2(fd[READ], STDIN_FILENO);
-		close(fd[READ]);
-
-		if (p->rightcmd->type == PIPE) {
-			printf_debug("El comando derecho antes de la llamada "
-			             "recursiva es %s\n",
-			             p->rightcmd->scmd);
-			run_pipe((struct pipecmd *) p->rightcmd);
-			printf_debug("El comando derecho despues de la llamada "
-			             "recursiva es %s\n",
-			             p->rightcmd->scmd);
-		} else {
-			struct execcmd *right_cmd = (struct execcmd *) p->rightcmd;
-			printf_debug("El comando derecho a ejecutar es %s\n",
-			             right_cmd->argv[0]);
-			for (int i = 1; i < (right_cmd->argc); i++) {
-				printf_debug("El argumento del comando derecho "
-				             "es: %s\n",
-				             right_cmd->argv[i]);
-			}
-			execvp(right_cmd->argv[0], right_cmd->argv);
-			perror("execvp");
-			exit(EXIT_FAILURE);
-		}
-	}
-
-	close(fd[READ]);
-	close(fd[WRITE]);
-	waitpid(pid, NULL, 0);
-	waitpid(pid2, NULL, 0);
-}
-
-void
-run_pipe_aux(struct pipecmd *p)
 {
 	int fd[2];
 	if (pipe(fd) < 0) {
@@ -346,7 +275,7 @@ exec_cmd(struct cmd *cmd)
 	}
 
 	case PIPE: {
-		run_pipe_aux(cmd);
+		run_pipe(cmd);
 		exit(EXIT_SUCCESS);
 
 		break;
