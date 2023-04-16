@@ -164,11 +164,11 @@ expand_environ_var(char *arg)
 			printf_debug("Error: la variable de entorno '%s' "
 			             "no existe\n",
 			             env_var);
-			return strdup("");
+			return strdup("\0");
 		}
 	} else  // if the environment variable name is empty, return an empty string
 	{
-		return strdup("");
+		return strdup("\0");
 	}
 }
 
@@ -203,7 +203,8 @@ parse_exec(char *buf_cmd)
 		printf_debug("El token es %s\n", tok);
 		tok = expand_environ_var(tok);
 
-		c->argv[argc++] = tok;
+		if (strlen(tok) > 0)
+			c->argv[argc++] = tok;
 	}
 
 	c->argv[argc] = (char *) NULL;
