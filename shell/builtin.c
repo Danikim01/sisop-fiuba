@@ -30,7 +30,7 @@ cd(char *cmd)
 {
 	if (strncmp(cmd, "cd", 2) == 0) {
 		// las primeras dos letras son "cd"
-		if (strlen(cmd) == 3) {
+		if (strlen(cmd) <= 3) {
 			// entra en caso de que no haya un directorio especificado
 			const char *home_dir = getenv("HOME");
 			if (chdir(home_dir) == -1) {
