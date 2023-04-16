@@ -34,16 +34,16 @@ cd(char *cmd)
 			// entra en caso de que no haya un directorio especificado
 			const char *home_dir = getenv("HOME");
 			if (chdir(home_dir) == -1) {
-				fprintf_debug("ERROR: Failed to set current "
-				              "directory to home.\n");
+				printf_debug("ERROR: Failed to set current "
+				             "directory to home.\n");
 				return 0;
 			}
 		} else {
 			// salto al directorio
 			char *directorio = cmd + 3;
 			if (chdir(directorio) == -1) {
-				fprintf_debug("ERROR: Failed to set current "
-				              "directory to home.\n");
+				printf_debug("ERROR: Failed to set current "
+				             "directory to home.\n");
 				return 0;
 			}
 		}
@@ -73,7 +73,7 @@ pwd(char *cmd)
 		if (getcwd(cwd, sizeof(cwd)) != NULL) {
 			printf_debug("%s\n", cwd);
 		} else {
-			fprintf_debug("ERROR: Getcwd failed.\n");
+			printf_debug("ERROR: Getcwd failed.\n");
 		}
 		return 1;
 	}
@@ -90,6 +90,11 @@ int
 history(char *cmd)
 {
 	// Your code here
+	int i = 0;              // esto es para que no se queje
+	if (strlen(cmd) > 0) {  // el make run
+		i = 1;          //
+	}                       //
+	i = i + 1;              //
 
 	return 0;
 }

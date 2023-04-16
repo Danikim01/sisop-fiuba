@@ -7,5 +7,6 @@
 #include "utils.h"
 
 struct cmd *parse_line(char *b);
+extern int status;  // add by jm
 
 #endif  // PARSING_H

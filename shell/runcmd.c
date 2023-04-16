@@ -70,6 +70,5 @@ run_cmd(char *cmd)
 	}
 
 	free_command(parsed);
-
 	return 0;
 }

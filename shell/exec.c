@@ -1,22 +1,6 @@
 #include "exec.h"
 
-// ls -l | grep f
-static void
-multi_pipes(struct pipecmd *p)
-{
-	// izquierdo
-	int fk_l = fork();
-	if (fk_l < 0) {
-		perror("fork");
-		exit(-1);
-	}
-	//  leo de stdin
-	// 	escribe a stdout
-
-	// derecho
-	//  creo pipe
-	// 	llamo recursivamente
-}
+void run_pipe(struct pipecmd *p);
 
 // sets "key" with the key part of "arg"
 // and null-terminates it
@@ -92,7 +76,6 @@ set_environ_vars(char **eargv, int eargc)
 		}
 	}
 }
-
 
 // opens the file in which the stdin/stdout/stderr
 // flow will be redirected, and returns
@@ -275,7 +258,8 @@ exec_cmd(struct cmd *cmd)
 	}
 
 	case PIPE: {
-		run_pipe(cmd);
+		p = (struct pipecmd *) cmd;
+		run_pipe(p);
 		exit(EXIT_SUCCESS);
 
 		break;

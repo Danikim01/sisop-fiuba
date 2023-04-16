@@ -1,0 +1,8 @@
+{
+  "files.associations": {
+    "utils.h": "c",
+    "printstatus.h": "c",
+    "exec.h": "c",
+    "parsing.h": "c"
+  }
+}

@@ -102,73 +102,73 @@ static char *
 expand_environ_var(char *arg)
 {
 	// Your code here
+	if (!arg)
+		return arg;
 
-	if (arg[0] == '$') {
-		// the correct substitution with the environment value should be
-		// performed advance to the next character
+	if (arg[0] != '$')
+		return arg;
+
+	if (strcmp(arg, "$?") == 0) {
+		sprintf(arg, "%d", status);
+		return arg;
+	}
+
+	// the correct substitution with the environment value should be
+	// performed advance to the next character
+	arg++;
+
+	// get the environment variable name
+	char *auxiliar = arg;
+	char *env_var_name = arg;
+
+	while (*auxiliar != '\0') {
+		auxiliar++;
+	}
+
+	// iterate until the end of the environment variable name
+	while (isalnum(*arg) || (*arg == '_')) {
 		arg++;
+	}
 
-		// get the environment variable name
-		char *auxiliar = arg;
-		char *env_var_name = arg;
+	// save the end position of the environment variable name
+	char *env_var_name_end = arg;
 
-		while (*auxiliar != '\0') {
-			auxiliar++;
-		}
+	// replace the environment variable name with the corresponding value
+	if (env_var_name_end > env_var_name) {
+		// copy the environment variable name into a null-terminated string
+		size_t env_var_len = env_var_name_end - env_var_name;
+		char env_var[env_var_len + 1];
+		strncpy(env_var, env_var_name, env_var_len);
+		env_var[env_var_len] = '\0';
 
-		// iterate until the end of the environment variable name
-		while (isalnum(*arg) || (*arg == '_')) {
-			arg++;
-		}
+		printf_debug("El valor de env_var es:%s\n", env_var);
 
-		// save the end position of the environment variable name
-		char *env_var_name_end = arg;
+		// get the value of the environment variable
+		char *env_value = getenv(env_var);
+		printf_debug("El valor de getenv(env_var) es %s\n", env_value);
 
-		// replace the environment variable name with the corresponding value
-		if (env_var_name_end > env_var_name) {
-			// copy the environment variable name into a null-terminated string
-			size_t env_var_len = env_var_name_end - env_var_name;
-			char env_var[env_var_len + 1];
-			strncpy(env_var, env_var_name, env_var_len);
-			env_var[env_var_len] = '\0';
+		// copy the value into a new string
+		if (env_value != NULL) {
+			char *new_arg = malloc(strlen(env_value) +
+			                       (auxiliar - env_var_name_end) + 1);
+			strcpy(new_arg, env_value);
+			strcat(new_arg, arg);
 
+			printf_debug("Concateno '%s' con '%s' (arg)\n",
+			             new_arg,
+			             arg);
 
-			printf_debug("El valor de env_var es:%s\n", env_var);
-
-			// get the value of the environment variable
-			char *env_value = getenv(env_var);
-
-			printf_debug("El valor de getenv(env_var) es %s\n",
-			             env_value);
-
-			// copy the value into a new string
-			if (env_value != NULL) {
-				char *new_arg =
-				        malloc(strlen(env_value) +
-				               (auxiliar - env_var_name_end) + 1);
-				strcpy(new_arg, env_value);
-				strcat(new_arg, arg);
-
-				printf_debug("Concateno %s con %s (arg)\n",
-				             new_arg,
-				             arg);
-
-				printf_debug("El nuevo argumento es %s\n",
-				             new_arg);
-				return new_arg;
-			} else {
-				printf_debug("Error: la variable de entorno %s "
-				             "no existe\n",
-				             env_var);
-				return strdup("");
-			}
-		}  // if the environment variable name is empty, return an empty string
-		else {
+			printf_debug("El nuevo argumento es '%s'\n", new_arg);
+			return new_arg;
+		} else {
+			printf_debug("Error: la variable de entorno '%s' "
+			             "no existe\n",
+			             env_var);
 			return strdup("");
 		}
-	}  // if the argument doesn't start with '$', just return the same argument
-	else {
-		return strdup(arg);
+	} else  // if the environment variable name is empty, return an empty string
+	{
+		return strdup("");
 	}
 }
 
