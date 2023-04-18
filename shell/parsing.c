@@ -101,6 +101,8 @@ parse_environ_var(struct execcmd *c, char *arg)
 static char *
 expand_environ_var(char *arg)
 {
+	// Case where arg == NULL is possible but never contemplated by the base
+	// code, still took it into account
 	if (!arg)
 		return NULL;
 
@@ -116,7 +118,7 @@ expand_environ_var(char *arg)
 		return arg;  // Env variable not set then return empty string
 	}
 
-	// If the data size is greater than the arg size then realloc, else return arg
+	// If the data size is greater than the arg size then realloc
 	int size_of_env_var_data =
 	        (sizeof(char) * strlen(env_var_data)) + 1;  //+1 for /0
 	if (size_of_env_var_data > ARGSIZE) {
@@ -231,7 +233,6 @@ parse_exec(char *buf_cmd)
 		if (parse_environ_var(c, tok))
 			continue;
 
-		printf_debug("El token es %s\n", tok);
 		tok = expand_environ_var(tok);
 
 		if (strlen(tok) > 0)
@@ -241,7 +242,6 @@ parse_exec(char *buf_cmd)
 	c->argv[argc] = (char *) NULL;
 	c->argc = argc;
 
-	printf_debug("SALI DE ACA\n");
 	return (struct cmd *) c;
 }
 
