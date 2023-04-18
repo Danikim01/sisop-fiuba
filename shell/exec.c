@@ -50,32 +50,37 @@ get_environ_value(char *arg, char *value, int idx)
 static void
 set_environ_vars(char **eargv, int eargc)
 {
-	//printf("eargc %d \n", eargc);
+	// printf("eargc %d \n", eargc);
 	for (int i = 0; i < eargc; i++) {
-		int equal_index = block_contains(eargv[i], '='); //-1 just to not get compiler warnings
-		if (equal_index  == -1) {
-			fprintf_debug(stderr, "ERROR: block_contains failed in set_environ_vars.\n");
+		int equal_index = block_contains(
+		        eargv[i], '=');  //-1 just to not get compiler warnings
+		if (equal_index == -1) {
+			fprintf_debug(
+			        stderr, "ERROR: block_contains failed in set_environ_vars.\n");
 
 			return;
 		}
-		// char *key = (char *) malloc(equal_index); //Innecesario -> devuelven static
-		// char *value = (char *) malloc(strlen(eargv[i]) - equal_index); //Idem
-		// get_environ_key(eargv[i], key);
-		// get_environ_value(eargv[i], value, equal_index);
+		// char *key = (char *) malloc(equal_index); //Innecesario ->
+		// devuelven static char *value = (char *)
+		// malloc(strlen(eargv[i]) - equal_index); //Idem get_environ_key(eargv[i],
+		// key); get_environ_value(eargv[i], value, equal_index);
 
-		char* key = NULL;
+		char *key = NULL;
 		get_environ_key(eargv[i], key);
 
-		char* value = NULL;
+		char *value = NULL;
 		get_environ_value(eargv[i], value, equal_index);
 
 		printf("key: %s", key);
 		printf("value: %s", value);
 
-		if (setenv(key, value, 1) == 0) { // ... , ... , 1 bc != 0 => if var does not exist it creats it
+		if (setenv(key, value, 1) ==
+		    0) {  // ... , ... , 1 bc != 0 => if var does not exist it creats it
 			printf("&%s set to: %s\n", key, value);
 		} else {
-			fprintf_debug(stderr, "ERROR: Failed setting enviroment variable\n.");
+			fprintf_debug(
+			        stderr,
+			        "ERROR: Failed setting enviroment variable\n.");
 
 			return;
 		}
@@ -176,7 +181,7 @@ exec_cmd(struct cmd *cmd)
 		//  spawns a command
 		e = (struct execcmd *) cmd;
 
-		set_environ_vars(e->eargv,e->eargc);
+		set_environ_vars(e->eargv, e->eargc);
 		execvp(e->argv[0], e->argv);
 		fprintf_debug(stderr, "ERROR: Execvp failed");
 		exit(-1);
@@ -203,7 +208,8 @@ exec_cmd(struct cmd *cmd)
 		if (strlen(r->in_file) > 0) {
 			input_fd = open_redir_fd(r->in_file, O_RDONLY);
 			if (input_fd < 0) {
-				fprintf_debug(stderr,
+				fprintf_debug(
+				        stderr,
 				        "ERROR: Falied opening input file\n");
 				exit(EXIT_FAILURE);
 			}

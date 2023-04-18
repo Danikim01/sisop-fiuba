@@ -34,16 +34,18 @@ cd(char *cmd)
 			// entra en caso de que no haya un directorio especificado
 			const char *home_dir = getenv("HOME");
 			if (chdir(home_dir) == -1) {
-				fprintf_debug(stderr, "ERROR: Failed to set current "
-				             "directory to home.\n");
+				fprintf_debug(stderr,
+				              "ERROR: Failed to set current "
+				              "directory to home.\n");
 				return 0;
 			}
 		} else {
 			// salto al directorio
 			char *directorio = cmd + 3;
 			if (chdir(directorio) == -1) {
-				fprintf_debug(stderr, "ERROR: Failed to set current "
-				             "directory to home.\n");
+				fprintf_debug(stderr,
+				              "ERROR: Failed to set current "
+				              "directory to home.\n");
 				return 0;
 			}
 		}
