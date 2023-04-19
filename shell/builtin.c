@@ -7,7 +7,21 @@
 int
 exit_shell(char *cmd)
 {
-	if (strncmp(cmd, "exit", 4) == 0) {
+	int space_index = block_contains(cmd, ' ');
+	if (space_index == -1) {
+		// CASE:
+		// exit
+		int is_exit_alone = strcmp(cmd, "exit") == 0;
+
+		if (is_exit_alone)
+			return 1;
+		else
+			return 0;
+	}
+
+	if (strncmp(cmd, "exit", space_index) == 0) {
+		// CASE:
+		// exit randomstrings
 		return 1;
 	}
 	return 0;
@@ -69,7 +83,14 @@ cd(char *cmd)
 int
 pwd(char *cmd)
 {
-	// Your code here
+	// int space_index = block_contains(cmd, ' ');
+	// if (space_index == -1) {
+	// 	// CASE:
+	// 	// pwd
+
+	// 	//logic
+	// }
+
 	if (strncmp(cmd, "pwd", 3) == 0) {
 		char cwd[BUFLEN];
 		if (getcwd(cwd, sizeof(cwd)) != NULL) {
