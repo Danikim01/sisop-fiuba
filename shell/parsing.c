@@ -109,8 +109,20 @@ expand_environ_var(char *arg)
 	if (arg[0] != '$')
 		return arg;
 
-	char *path_name = arg + 1;  // Don`t use arg++, generates offset of 1
+	bool is_magic_variable = strcmp(arg, "$?") == 0;
+	if (is_magic_variable) { 
+		//exit status is an 8-bit integer, therefor
+		//min(exit status) = 0 and max(exit status) = 255
+		//so theres no need to reallocate memory
+		char prev_status[4]; //4 because 3 positions for the number and 1 for \0
+		sprintf(prev_status, "%d", status);
 
+		strcpy(arg, prev_status);
+
+		return arg;
+	}
+
+	char *path_name = arg + 1;  // Don`t use arg++, generates offset of 1
 	char *env_var_data = getenv(path_name);
 	if (!env_var_data) {
 		strcpy(arg, "");
