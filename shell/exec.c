@@ -173,7 +173,7 @@ exec_cmd(struct cmd *cmd)
 
 		set_environ_vars(e->eargv, e->eargc);
 		execvp(e->argv[0], e->argv);
-		fprintf_debug(stderr, "ERROR: Execvp failed");
+		fprintf_debug(stderr, "ERROR: Execvp failed.\n");
 		exit(EXIT_FAILURE);
 
 		break;
@@ -254,7 +254,7 @@ exec_cmd(struct cmd *cmd)
 		}
 
 		execvp(r->argv[0], r->argv);
-		fprintf_debug(stderr, "ERROR: execvp failed\n");
+		fprintf_debug(stderr, "ERROR: execvp failed.\n");
 		exit(EXIT_FAILURE);
 
 		break;

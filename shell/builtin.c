@@ -15,18 +15,34 @@ exit_shell(char *cmd)
 
 		if (is_exit_alone)
 			return 1;
-		else
-			return 0;
+		
+		return 0;
 	}
 
 	// Enters here exlusively if theres a space in the command
 	if (strncmp(cmd, "exit", space_index) == 0) {
 		// CASE:
 		// exit randomstrings
+
 		return 1;
 	}
+
 	return 0;
 }
+
+int change_directory(char* dir) {
+	if (chdir(dir) == -1) {
+		fprintf_debug(stderr,
+						"ERROR: Failed to set current "
+						"directory to %s.\n", dir);
+		return 0;
+	}
+
+	snprintf(prompt, sizeof prompt, "(%s)", dir);
+
+	return 1;
+}
+
 
 // returns true if "chdir" was performed
 //  this means that if 'cmd' contains:
@@ -43,34 +59,27 @@ exit_shell(char *cmd)
 int
 cd(char *cmd)
 {
-	if (strncmp(cmd, "cd", 2) == 0) {
-		// las primeras dos letras son "cd"
-		if (strlen(cmd) <= 3) {
-			// entra en caso de que no haya un directorio especificado
-			const char *home_dir = getenv("HOME");
-			if (chdir(home_dir) == -1) {
-				fprintf_debug(stderr,
-				              "ERROR: Failed to set current "
-				              "directory to home.\n");
-				return 0;
-			}
-		} else {
-			// salto al directorio
-			char *directorio = cmd + 3;
-			if (chdir(directorio) == -1) {
-				fprintf_debug(stderr,
-				              "ERROR: Failed to set current "
-				              "directory to home.\n");
-				return 0;
-			}
+	int space_index = block_contains(cmd, ' ');
+	if (space_index == -1) {
+		// CASE:
+		// cd
+		int is_cd_alone = strcmp(cmd, "cd") == 0;
+		if (is_cd_alone) { 
+			const char* home_dir = getenv("HOME");
+			
+			return change_directory(home_dir);
 		}
 
-		char cwd[BUFLEN];
-		if (getcwd(cwd, sizeof(cwd)) != NULL) {
-			// actualizar prompt con nueva direccion
-			snprintf(prompt, PRMTLEN, "%s%s", "", cwd);
-		}
-		return 1;
+		return 0;
+	}
+
+	// Enters here exlusively if theres a space in the command
+	if (strncmp(cmd, "cd", space_index) == 0) {
+		// CASE:
+		// cd randomstrings, cd . and cd ..
+		char* dir = split_line(cmd, ' ');
+
+		return change_directory(dir);
 	}
 
 	return 0;
@@ -109,8 +118,8 @@ pwd(char *cmd)
 
 		if (is_pwd_alone)
 			return print_cwd();
-		else
-			return 0;
+
+		return 0;
 	}
 
 	// Enters here exlusively if theres a space in the command
