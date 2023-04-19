@@ -19,6 +19,7 @@ exit_shell(char *cmd)
 			return 0;
 	}
 
+	// Enters here exlusively if theres a space in the command
 	if (strncmp(cmd, "exit", space_index) == 0) {
 		// CASE:
 		// exit randomstrings
@@ -75,6 +76,23 @@ cd(char *cmd)
 	return 0;
 }
 
+int
+print_cwd()
+{
+	char *cwd =
+	        getcwd(NULL, 0);  // getcwd(NULL, 0) dynamically allocates memory
+	if (cwd == NULL) {
+		fprintf_debug(stderr, "ERROR: Getcwd failed.\n");
+
+		return 0;
+	}
+
+	printf_debug("%s\n", cwd);
+	free(cwd);  // free the allocated memory from getcwd
+
+	return 1;
+}
+
 // returns true if 'pwd' was invoked
 // in the command line
 //
@@ -83,22 +101,23 @@ cd(char *cmd)
 int
 pwd(char *cmd)
 {
-	// int space_index = block_contains(cmd, ' ');
-	// if (space_index == -1) {
-	// 	// CASE:
-	// 	// pwd
+	int space_index = block_contains(cmd, ' ');
+	if (space_index == -1) {
+		// CASE:
+		// pwd
+		int is_pwd_alone = strcmp(cmd, "pwd") == 0;
 
-	// 	//logic
-	// }
+		if (is_pwd_alone)
+			return print_cwd();
+		else
+			return 0;
+	}
 
-	if (strncmp(cmd, "pwd", 3) == 0) {
-		char cwd[BUFLEN];
-		if (getcwd(cwd, sizeof(cwd)) != NULL) {
-			printf_debug("%s\n", cwd);
-		} else {
-			fprintf_debug(stderr, "ERROR: Getcwd failed.\n");
-		}
-		return 1;
+	// Enters here exlusively if theres a space in the command
+	if (strncmp(cmd, "pwd", space_index) == 0) {
+		// CASE:
+		// pwd randomstring
+		return print_cwd();
 	}
 
 	return 0;
