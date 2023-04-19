@@ -50,38 +50,28 @@ get_environ_value(char *arg, char *value, int idx)
 static void
 set_environ_vars(char **eargv, int eargc)
 {
-	// printf("eargc %d \n", eargc);
 	for (int i = 0; i < eargc; i++) {
-		int equal_index = block_contains(
-		        eargv[i], '=');  //-1 just to not get compiler warnings
+		int equal_index = block_contains(eargv[i], '=');
 		if (equal_index == -1) {
 			fprintf_debug(
 			        stderr, "ERROR: block_contains failed in set_environ_vars.\n");
 
 			return;
 		}
-		// char *key = (char *) malloc(equal_index); //Innecesario ->
-		// devuelven static char *value = (char *)
-		// malloc(strlen(eargv[i]) - equal_index); //Idem get_environ_key(eargv[i],
-		// key); get_environ_value(eargv[i], value, equal_index);
 
-		char *key = NULL;
+		int key_length = equal_index + 1;  //+1 for \0
+		char key[key_length];
 		get_environ_key(eargv[i], key);
 
-		char *value = NULL;
+		int value_length = strlen(eargv[i]) - equal_index;
+		// EJ: HOLA=algo => length = 9 - 4 = 5 (already considers \0)
+		char value[value_length];
 		get_environ_value(eargv[i], value, equal_index);
 
-		printf("key: %s", key);
-		printf("value: %s", value);
-
-		if (setenv(key, value, 1) ==
-		    0) {  // ... , ... , 1 bc != 0 => if var does not exist it creats it
-			printf("&%s set to: %s\n", key, value);
-		} else {
+		if (setenv(key, value, 1) != 0) {
 			fprintf_debug(
 			        stderr,
 			        "ERROR: Failed setting enviroment variable\n.");
-
 			return;
 		}
 	}
