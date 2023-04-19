@@ -15,7 +15,7 @@ exit_shell(char *cmd)
 
 		if (is_exit_alone)
 			return 1;
-		
+
 		return 0;
 	}
 
@@ -30,11 +30,14 @@ exit_shell(char *cmd)
 	return 0;
 }
 
-int change_directory(char* dir) {
+int
+change_directory(char *dir)
+{
 	if (chdir(dir) == -1) {
 		fprintf_debug(stderr,
-						"ERROR: Failed to set current "
-						"directory to %s.\n", dir);
+		              "ERROR: Failed to set current "
+		              "directory to %s.\n",
+		              dir);
 		return 0;
 	}
 
@@ -64,9 +67,9 @@ cd(char *cmd)
 		// CASE:
 		// cd
 		int is_cd_alone = strcmp(cmd, "cd") == 0;
-		if (is_cd_alone) { 
-			const char* home_dir = getenv("HOME");
-			
+		if (is_cd_alone) {
+			const char *home_dir = getenv("HOME");
+
 			return change_directory(home_dir);
 		}
 
@@ -77,7 +80,7 @@ cd(char *cmd)
 	if (strncmp(cmd, "cd", space_index) == 0) {
 		// CASE:
 		// cd randomstrings, cd . and cd ..
-		char* dir = split_line(cmd, ' ');
+		char *dir = split_line(cmd, ' ');
 
 		return change_directory(dir);
 	}
