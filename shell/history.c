@@ -70,6 +70,46 @@ show_history(int n)
 	return 1;
 }
 
+char *
+get_previous_command()
+{
+	const char *home_dir = getenv("HOME");
+	if (home_dir == NULL) {
+		fprintf_debug(
+		        stderr, "Error getting previous command: HOME environment variable is not set\n");
+		return NULL;
+	}
+
+	char path[512];
+	strcpy(path, home_dir);
+	strcat(path, "/");
+	strcat(path, HISTFILE);
+
+	FILE *fp = fopen(path, "r");
+	if (fp == NULL) {
+		fprintf_debug(
+		        stderr, "Error getting previous command: could not open file\n");
+		return NULL;
+	}
+
+	char cmd[1024];
+	char last_cmd[1024] = "";
+	while (fgets(cmd, sizeof(cmd), fp) != NULL) {
+		strcpy(last_cmd, cmd);
+	}
+
+	fclose(fp);
+
+	// Remove newline character at the end of the command
+	size_t len = strlen(last_cmd);
+	if (len > 0 && last_cmd[len - 1] == '\n') {
+		last_cmd[len - 1] = '\0';
+	}
+
+	return strdup(last_cmd);
+}
+
+
 int
 append_history(const char *cmd)
 {
@@ -93,7 +133,7 @@ append_history(const char *cmd)
 		        "Error appending to history: could not open file\n");
 		return 0;
 	}
-	printf_debug("appending: '%s'\n", cmd);
+	// printf_debug("appending: '%s'\n", cmd);
 	fprintf_debug(fp, "%s\n", cmd);
 	fclose(fp);
 

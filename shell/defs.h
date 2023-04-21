@@ -3,17 +3,16 @@
 
 #define _GNU_SOURCE
 
-#include <stdio.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <signal.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
-
-#include <fcntl.h>
-#include <unistd.h>
-#include <signal.h>
-#include <sys/wait.h>
 #include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 #ifndef SHELL_NO_COLORS
 // color scape strings
@@ -35,6 +34,13 @@
 #define MAXARGS 20
 #define ARGSIZE 1024
 #define FNAMESIZE 1024
+
+// constants for reading from user input
+#define CHAR_NEW_LINE '\n'
+#define CHAR_EOF '\004'
+#define CHAR_BACK '\b'
+#define CHAR_DEL 127
+#define CHAR_ESCSEQ '\033'
 
 // command representation after parsed
 #define EXEC 1
