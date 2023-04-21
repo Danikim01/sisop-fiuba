@@ -135,6 +135,17 @@ pwd(char *cmd)
 	return 0;
 }
 
+// https://www.w3schools.blog/check-if-string-is-number-c
+int
+isNumeric(char s[])
+{
+	for (int i = 0; s[i] != '\0'; i++) {
+		if (isdigit(s[i]) == 0)
+			return 0;
+	}
+	return 1;
+}
+
 // returns true if `history` was invoked
 // in the command line
 //
@@ -150,10 +161,20 @@ history(char *cmd)
 
 	char *token = strtok(cmd_copy, " ");
 	if (strcmp(token, "history") == 0) {
-		printf_debug("cmd: history invoked\n");
-		free(cmd_copy);
+		int n = 0;
+		token = strtok(NULL, " ");
+		if (token == NULL) {
+			n = -1;  // ran history without argument n
+		} else if (isNumeric(token)) {
+			n = atoi(token);
+		} else {
+			printf_debug("usage: history n\n");
+			free(cmd_copy);
+			return 1;
+		}
 
-		int n = 10;
+		// printf_debug("argument is '%i'\n", n);
+		free(cmd_copy);
 		return show_history(n);
 	}
 

@@ -7,6 +7,8 @@
 #define HISTFILE ".fisop_history"
 
 int show_history(int n) {
+    if (n == -1) printf_debug("TODO: if n = -1 show all lines possible!\n");
+
     const char *home_dir = getenv("HOME");
     if (home_dir == NULL) {
         fprintf_debug(stderr, "Error showing history: HOME environment variable is not set\n");
@@ -26,18 +28,40 @@ int show_history(int n) {
         return 0;
     }
 
-
-    int line_num = 0;
-    char line[1024];
-    while (fgets(line, sizeof(line), fp)) {
-        line_num++;
-        if (n == 0 || line_num >= (line_num - n)) {
-            printf("%d %s", line_num, line);
+    // get amount of lines
+    int num_lines = 0;
+    char ch;
+    while ((ch = fgetc(fp)) != EOF) {
+        if (ch == '\n') {
+            num_lines++;
         }
     }
 
+    // calculate number of lines to skip
+    int num_to_skip = num_lines - n;
+    if (num_to_skip < 0) {
+        num_to_skip = 0;
+    }
+
+    // reset file pointer to beginning
+    fseek(fp, 0, SEEK_SET);
+
+    // skip lines
+    int num_skipped = 0;
+    while (num_skipped < num_to_skip) {
+        if (fgets(cmd, sizeof(cmd), fp) == NULL) {
+            break;
+        }
+        num_skipped++;
+    }
+
+    // print rest of lines
+    while (fgets(cmd, sizeof(cmd), fp) != NULL) {
+        printf("%s", cmd);
+    }
+
     fclose(fp);
-    printf_debug("finished showing history\n");
+    // printf_debug("finished showing history\n");
     return 1;
 }
 
