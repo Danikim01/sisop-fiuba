@@ -19,3 +19,5 @@ sh.c
 types.h
 utils.c
 utils.h
+history.c
+history.h
