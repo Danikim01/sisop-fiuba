@@ -3,6 +3,7 @@
 
 #include "defs.h"
 #include "utils.h"
+#include "history.h"
 
 extern char prompt[PRMTLEN];
 

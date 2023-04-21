@@ -19,6 +19,10 @@ run_cmd(char *cmd)
 	if (history(cmd))
 		return 0;
 
+	// append to history
+	// printf_debug("append to history: '%s'\n", cmd);
+	append_history(cmd);
+
 	// "cd" built-in call
 	if (cd(cmd))  //
 		return 0;
