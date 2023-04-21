@@ -7,9 +7,11 @@
 #define HISTFILE ".fisop_history"
 
 // shows the shells most recent 'n'
-// lines ran. If argument 'n' is -1 
+// lines ran. If argument 'n' is -1
 // it shows the whole history.
-int show_history(int n) {
+int 
+show_history(int n) 
+{
     const char *home_dir = getenv("HOME");
     if (home_dir == NULL) {
         fprintf_debug(stderr, "Error showing history: HOME environment variable is not set\n");
@@ -66,7 +68,9 @@ int show_history(int n) {
     return 1;
 }
 
-int append_history(const char *cmd) {
+int 
+append_history(const char *cmd) 
+{
     const char *home_dir = getenv("HOME");
     if (home_dir == NULL) {
         fprintf_debug(stderr, "Error appending to history: HOME environment variable is not set\n");
