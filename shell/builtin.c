@@ -140,24 +140,24 @@ pwd(char *cmd)
 //
 // (It has to be executed here and then
 // 	return true)
-int 
+int
 history(char *cmd)
 {
-    char *cmd_copy = strdup(cmd);
+	char *cmd_copy = strdup(cmd);
 	if (cmd_copy == NULL) {
 		return 0;
 	}
 
-    char *token = strtok(cmd_copy, " ");
-    if (strcmp(token, "history") == 0) {
-        printf_debug("cmd: history invoked\n");
-        free(cmd_copy);
+	char *token = strtok(cmd_copy, " ");
+	if (strcmp(token, "history") == 0) {
+		printf_debug("cmd: history invoked\n");
+		free(cmd_copy);
 
 		int n = 10;
-        return show_history(n);
-    }
+		return show_history(n);
+	}
 
-    // printf_debug("cmd: '%s' is not history\n", cmd);
-    free(cmd_copy);
-    return 0;
+	// printf_debug("cmd: '%s' is not history\n", cmd);
+	free(cmd_copy);
+	return 0;
 }
