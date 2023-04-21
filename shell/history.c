@@ -6,6 +6,9 @@
 
 #define HISTFILE ".fisop_history"
 
+// shows the shells most recent 'n'
+// lines ran. If argument 'n' is -1 
+// it shows the whole history.
 int show_history(int n) {
     const char *home_dir = getenv("HOME");
     if (home_dir == NULL) {
