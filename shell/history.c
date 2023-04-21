@@ -7,8 +7,6 @@
 #define HISTFILE ".fisop_history"
 
 int show_history(int n) {
-    if (n == -1) printf_debug("TODO: if n = -1 show all lines possible!\n");
-
     const char *home_dir = getenv("HOME");
     if (home_dir == NULL) {
         fprintf_debug(stderr, "Error showing history: HOME environment variable is not set\n");
@@ -39,7 +37,7 @@ int show_history(int n) {
 
     // calculate number of lines to skip
     int num_to_skip = num_lines - n;
-    if (num_to_skip < 0) {
+    if (num_to_skip < 0 || n == -1) { // skip no lines
         num_to_skip = 0;
     }
 
