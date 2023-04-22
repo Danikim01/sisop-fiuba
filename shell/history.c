@@ -122,7 +122,18 @@ history_init()
 void
 history_free()
 {
-	// frees memory
+	node_t *curr_node = global_hist->node_first;
+	node_t *next_node;
+
+	while (curr_node != NULL) {
+		next_node = curr_node->next;
+		free(curr_node->line);
+		free(curr_node);
+		curr_node = next_node;
+	}
+
+	free(global_hist);
+	global_hist = NULL;
 }
 
 char *

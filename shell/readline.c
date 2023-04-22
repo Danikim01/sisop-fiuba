@@ -90,13 +90,15 @@ input_from_stdin(const char *prompt)
 	fprintf(stdout, "%s", "$ ");
 #endif
 
+	memset(buffer, 0, BUFLEN);
+
 	while (keep_reading) {
 		assert(read(STDIN_FILENO, &c, 1) > 0);
 
 		switch (c) {
 		case CHAR_NEW_LINE:
 			// enter key input
-			buffer[current_command_index] = '\0';
+			buffer[current_command_index] = END_STRING;
 			assert(write(STDOUT_FILENO, &c, 1) > 0);
 			keep_reading = false;
 			break;
@@ -132,7 +134,8 @@ input_from_stdin(const char *prompt)
 	if (c == CHAR_EOF) {
 		return NULL;
 	} else {
-		return strdup(buffer);
+		// return strdup(buffer);
+		return buffer;
 	}
 }
 
@@ -232,8 +235,8 @@ handle_left_arrow(int *command_index)
 char *
 read_line(const char *prompt)
 {
-	if (isatty(STDIN_FILENO))
+	if (isatty(STDIN_FILENO)) {
 		return input_from_stdin(prompt);
-	else
+	} else
 		return input_from_test(prompt);
 }

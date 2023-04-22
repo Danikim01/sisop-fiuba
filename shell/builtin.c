@@ -33,6 +33,7 @@ exit_shell(char *cmd)
 int
 change_directory(char *dir)
 {
+	// printf_debug("change dir to: '%s'\n", dir);
 	if (chdir(dir) == -1) {
 		fprintf_debug(stderr,
 		              "ERROR: Failed to set current "
@@ -41,7 +42,9 @@ change_directory(char *dir)
 		return 0;
 	}
 
-	snprintf(prompt, sizeof prompt, "(%s)", dir);
+	char *aux = getcwd(NULL, 0);
+	// dir = aux + dir;
+	snprintf(prompt, sizeof prompt, "(%s)", aux);
 
 	return 1;
 }
