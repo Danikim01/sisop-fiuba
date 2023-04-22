@@ -149,10 +149,10 @@ handle_escape_sequence(int *current_command_index, int top_index)
 
 	switch (esc_seq) {
 	case 'A':
-		handle_up_arrow(current_command_index);
+		handle_up_arrow(current_command_index, top_index);
 		break;
 	case 'B':
-		// interact with history
+		handle_down_arrow(current_command_index);
 		break;
 	case 'C':  // Right arrow
 		handle_right_arrow(current_command_index, top_index);
@@ -165,10 +165,9 @@ handle_escape_sequence(int *current_command_index, int top_index)
 }
 
 void
-handle_up_arrow(int *current_command_index)
+handle_up_arrow(int *current_command_index, int* top_index)
 {
-	// char *previous_command = NULL;//get_previous_command();
-	char *previous_command = history_get_move_index_up(NULL);
+	char *previous_command = history_get_move_index_up();
 
 	if (previous_command != NULL) {
 		while (*current_command_index > 0) {
@@ -178,12 +177,34 @@ handle_up_arrow(int *current_command_index)
 
 		strcpy(buffer, previous_command);
 		*current_command_index = strlen(previous_command);
+		top_index = current_command_index;
 
 		assert(write(STDOUT_FILENO,
 		             previous_command,
 		             *current_command_index) > 0);
 
-		free(previous_command);
+		// free(previous_command);
+	}
+}
+
+void
+handle_down_arrow(int *current_command_index)
+{
+	char *next_command = history_get_move_index_down();
+
+	if (next_command != NULL) {
+		while (*current_command_index > 0) {
+			delete_char();
+			buffer[--(*current_command_index)] = '\0';
+		}
+
+		strcpy(buffer, next_command);
+		*current_command_index = strlen(next_command);
+
+		assert(write(STDOUT_FILENO, next_command, *current_command_index) >
+		       0);
+
+		// free(previous_command);
 	}
 }
 

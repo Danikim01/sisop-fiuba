@@ -6,6 +6,9 @@
 
 #define HISTFILE ".fisop_history"
 
+int append_history_list(const char *cmd);
+char* history_get_current_index(void);
+
 typedef struct node {
 	char *line;
 	struct node *next;
@@ -18,7 +21,6 @@ typedef struct history {
 	int index;
 } history_t;
 
-
 history_t *global_hist = NULL;
 
 // TODO: limit list size
@@ -26,6 +28,7 @@ history_t *global_hist = NULL;
 int
 append_history_list(const char *cmd)
 {
+	// printf_debug("appending: '%s'\n", cmd);
 	if (!global_hist) {
 		return -1;
 	}
@@ -47,6 +50,7 @@ append_history_list(const char *cmd)
 
 	global_hist->node_last = new_node;
 	global_hist->size++;
+	global_hist->index++;
 	return 0;
 }
 
@@ -54,11 +58,11 @@ append_history_list(const char *cmd)
 void
 history_init()
 {
-	printf_debug("loading history...\n");
+	// printf_debug("loading history...\n");
 	global_hist = calloc(1, sizeof(history_t));
 	if (!global_hist) {
 		printf_debug("Error allocating memory for history\n");
-		return NULL;
+		return;
 	}
 
 	global_hist->node_first = NULL;
@@ -70,8 +74,8 @@ history_init()
 	if (home_dir == NULL) {
 		printf_debug("Error appending to history: HOME environment "
 		             "variable is not set\n");
-		history_free(global_hist);
-		return NULL;
+		history_free();
+		return;
 	}
 
 	char path[512];
@@ -83,8 +87,8 @@ history_init()
 	FILE *fp = fopen(path, "r");
 	if (!fp) {
 		printf_debug("Error opening history file '%s'\n", HISTFILE);
-		history_free(global_hist);
-		return NULL;
+		history_free();
+		return;
 	}
 
 	// read the file line by line
@@ -111,12 +115,12 @@ history_init()
 	// free memory and close file
 	free(line);
 	fclose(fp);
-	printf_debug("finished loading history...\n");
+	// printf_debug("finished loading history...\n");
 	return;
 }
 
 void
-history_free(history_t *hist)
+history_free()
 {
 	// frees memory
 }
@@ -151,7 +155,9 @@ char *
 history_get_move_index_up()
 {
 	// decrease idx
-	global_hist->index--;
+	if (global_hist->index > 0) {
+		global_hist->index--;
+	}
 
 	return history_get_current_index();
 }
@@ -162,9 +168,18 @@ char *
 history_get_move_index_down()
 {
 	// increase idx
-	global_hist->index++;
+	if (global_hist->index < (int) global_hist->size) {
+		global_hist->index++;
+	}
 
 	return history_get_current_index();
+}
+
+// resets index
+void
+reset_history_index()
+{
+	global_hist->index = global_hist->size;
 }
 
 // shows the shells most recent 'n'
@@ -235,6 +250,8 @@ show_history(int n)
 int
 append_history(const char *cmd)
 {
+	// TODO: avoid appending empty line
+
 	// append to FILE
 	const char *home_dir = getenv("HOME");
 	if (home_dir == NULL) {

@@ -4,6 +4,7 @@
     "printstatus.h": "c",
     "exec.h": "c",
     "parsing.h": "c",
-    "builtin.h": "c"
+    "builtin.h": "c",
+    "history.h": "c"
   }
 }
