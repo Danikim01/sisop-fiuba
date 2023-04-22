@@ -42,8 +42,6 @@ set_input_mode(void)
 void
 delete_char()
 {
-	// genera una secuencia de bytes
-	// que indican que se debe borrar un byte
 	assert(write(STDOUT_FILENO, "\b \b", 3) > 0);
 }
 
@@ -80,7 +78,9 @@ char *
 input_from_stdin(const char *prompt)
 {
 	char c;
-	int command_index = 0;
+	int current_command_index = 0;
+	int top_index = 0;
+
 	bool keep_reading = true;
 
 	set_input_mode();
@@ -95,26 +95,33 @@ input_from_stdin(const char *prompt)
 
 		switch (c) {
 		case CHAR_NEW_LINE:
-			buffer[command_index] = '\0';
+			// enter key input
+			buffer[current_command_index] = '\0';
 			assert(write(STDOUT_FILENO, &c, 1) > 0);
 			keep_reading = false;
 			break;
 		case CHAR_EOF:
+			// ctrl+d input
 			keep_reading = false;
 			break;
 		case CHAR_DEL:
-			if (command_index > 0) {
+			// backspace input
+			if (current_command_index > 0) {
 				delete_char();
-				buffer[command_index--] = '\0';
+				buffer[current_command_index--] = '\0';
+				top_index--;
 			}
 			break;
 		case CHAR_ESCSEQ:
-			handle_escape_sequence(&command_index);
+			// arrow key input
+			handle_escape_sequence(&current_command_index, top_index);
 			break;
 		default:
+			// normal input
 			if (isprint(c)) {
 				assert(write(STDOUT_FILENO, &c, 1) > 0);
-				buffer[command_index++] = c;
+				buffer[current_command_index++] = c;
+				top_index++;
 			}
 			break;
 		}
@@ -130,7 +137,7 @@ input_from_stdin(const char *prompt)
 }
 
 void
-handle_escape_sequence(int *command_index)
+handle_escape_sequence(int *current_command_index, int top_index)
 {
 	char esc_seq;
 	assert(read(STDIN_FILENO, &esc_seq, 1) > 0);
@@ -142,37 +149,58 @@ handle_escape_sequence(int *command_index)
 
 	switch (esc_seq) {
 	case 'A':
-		handle_up_arrow(command_index);
+		handle_up_arrow(current_command_index);
 		break;
 	case 'B':
 		// interact with history
 		break;
-	case 'C':
-		// interact with command
+	case 'C':  // Right arrow
+		handle_right_arrow(current_command_index, top_index);
 		break;
-	case 'D':
-		// interact with command
+
+	case 'D':  // Left arrow
+		handle_left_arrow(current_command_index);
 		break;
 	}
 }
 
 void
-handle_up_arrow(int *command_index)
+handle_up_arrow(int *current_command_index)
 {
 	char *previous_command = get_previous_command();
 
 	if (previous_command != NULL) {
-		while (*command_index > 0) {
+		while (*current_command_index > 0) {
 			delete_char();
-			buffer[--(*command_index)] = '\0';
+			buffer[--(*current_command_index)] = '\0';
 		}
 
 		strcpy(buffer, previous_command);
-		*command_index = strlen(previous_command);
+		*current_command_index = strlen(previous_command);
 
-		assert(write(STDOUT_FILENO, previous_command, *command_index) > 0);
+		assert(write(STDOUT_FILENO,
+		             previous_command,
+		             *current_command_index) > 0);
 
 		free(previous_command);
+	}
+}
+
+void
+handle_right_arrow(int *command_index, int top_index)
+{
+	if (*command_index < top_index) {
+		assert(write(STDOUT_FILENO, "\x1b[C", 3) > 0);
+		(*command_index)++;
+	}
+}
+
+void
+handle_left_arrow(int *command_index)
+{
+	if (*command_index > 0) {
+		assert(write(STDOUT_FILENO, "\x1b[D", 3) > 0);
+		(*command_index)--;
 	}
 }
 
