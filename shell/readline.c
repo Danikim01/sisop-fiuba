@@ -165,7 +165,7 @@ handle_escape_sequence(int *current_command_index, int top_index)
 }
 
 void
-handle_up_arrow(int *current_command_index, int* top_index)
+handle_up_arrow(int *current_command_index, int *top_index)
 {
 	char *previous_command = history_get_move_index_up();
 

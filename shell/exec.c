@@ -173,7 +173,9 @@ exec_cmd(struct cmd *cmd)
 
 		set_environ_vars(e->eargv, e->eargc);
 		execvp(e->argv[0], e->argv);
-		fprintf_debug(stderr, "ERROR: Execvp failed to run '%s'.\n", e->scmd);
+		fprintf_debug(stderr,
+		              "ERROR: Execvp failed to run '%s'.\n",
+		              e->scmd);
 		exit(EXIT_FAILURE);
 
 		break;

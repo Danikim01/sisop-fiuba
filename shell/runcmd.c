@@ -20,8 +20,7 @@ run_cmd(char *cmd)
 		return 0;
 
 	// append to history
-	// printf_debug("append to history: '%s'\n", cmd);
-	// append_history(cmd);
+	append_history(cmd);
 
 	// "cd" built-in call
 	if (cd(cmd))  //
@@ -73,7 +72,7 @@ run_cmd(char *cmd)
 		print_status_info(parsed);
 	}
 
-	// reset_history_index();
+	reset_history_index();
 	free_command(parsed);
 	return 0;
 }
