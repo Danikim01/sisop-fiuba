@@ -6,6 +6,59 @@
 
 #define HISTFILE ".fisop_history"
 
+typedef struct node {
+	char *line;
+	struct node *next;
+} node_t;
+
+typedef struct history {
+	node_t *node_first;
+	node_t *node_last;
+	size_t *size;
+	int index;
+} history_t;
+
+history_t *
+history_init()
+{
+	// loads history file into ram
+
+	// returns history
+	return NULL;
+}
+
+void
+history_free()
+{
+	// frees memory
+}
+
+char *
+history_get_current_index(history_t *hist)
+{
+	// returns string in current index
+}
+
+// decreases index (arrow up)
+// and return string on index
+char *
+history_get_move_index_up(history_t *hist)
+{
+	// decrease idx
+
+	// return
+}
+
+// increases index (arrow down)
+// and return string on index
+char *
+history_get_move_index_down(history_t *hist)
+{
+	// increase idx
+
+	// return
+}
+
 // shows the shells most recent 'n'
 // lines ran. If argument 'n' is -1
 // it shows the whole history.
@@ -110,6 +163,10 @@ get_previous_command()
 }
 
 
+// TODO: append to history_t
+// contemplate case history_t size
+// is bigger than max list size
+// (remove first before appending)
 int
 append_history(const char *cmd)
 {
