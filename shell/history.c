@@ -14,49 +14,156 @@ typedef struct node {
 typedef struct history {
 	node_t *node_first;
 	node_t *node_last;
-	size_t *size;
+	size_t size;
 	int index;
 } history_t;
 
-history_t *
+
+history_t* global_hist = NULL;
+
+// TODO: limit list size
+// TODO: DO NOT APPEND ' '
+int
+append_history_list(const char *cmd)
+{
+	if (!global_hist) {
+		return -1;
+	}
+
+	node_t *new_node = calloc(1, sizeof(node_t));
+	if (!new_node) {
+		printf_debug("Error allocating memory for new node\n");
+		return -1;
+	}
+
+	new_node->line = strdup(cmd);
+	new_node->next = NULL;
+
+	if (global_hist->size == 0) {
+		global_hist->node_first = new_node;
+	} else {
+		global_hist->node_last->next = new_node;
+	}
+
+	global_hist->node_last = new_node;
+	global_hist->size++;
+	return 0;
+}
+
+// loads history file into RAM
+void
 history_init()
 {
-	// loads history file into ram
+	printf_debug("loading history...\n");
+	global_hist = calloc(1, sizeof(history_t));
+	if (!global_hist) {
+		printf_debug("Error allocating memory for history\n");
+		return NULL;
+	}
 
-	// returns history
-	return NULL;
+	global_hist->node_first = NULL;
+	global_hist->node_last = NULL;
+	global_hist->size = 0;
+	global_hist->index = 0;
+
+	const char *home_dir = getenv("HOME");
+	if (home_dir == NULL) {
+		printf_debug("Error appending to history: HOME environment "
+		             "variable is not set\n");
+		history_free(global_hist);
+		return NULL;
+	}
+
+	char path[512];
+	strcpy(path, home_dir);
+	strcat(path, "/");
+	strcat(path, HISTFILE);
+
+	// open the history file for reading
+	FILE *fp = fopen(path, "r");
+	if (!fp) {
+		printf_debug("Error opening history file '%s'\n", HISTFILE);
+		history_free(global_hist);
+		return NULL;
+	}
+
+	// read the file line by line
+	char *line = NULL;
+	size_t len = 0;
+	ssize_t read;
+	while ((read = getline(&line, &len, fp)) != -1) {
+		// remove trailing newline
+		if (line[read - 1] == '\n') {
+			line[read - 1] = '\0';
+		}
+
+		// append the line to the history list
+		int ret = append_history_list(line);
+		if (ret != 0) {
+			printf_debug("Error appending line to history: %s\n",
+			             line);
+		}
+	}
+
+	// set index to be last (most recent) element on list
+	global_hist->index = (int) global_hist->size;
+
+	// free memory and close file
+	free(line);
+	fclose(fp);
+	printf_debug("finished loading history...\n");
+	return;
 }
 
 void
-history_free()
+history_free(history_t *hist)
 {
 	// frees memory
 }
 
 char *
-history_get_current_index(history_t *hist)
+history_get_current_index()
 {
-	// returns string in current index
+    // Check if the history is empty
+    if (global_hist->node_first == NULL || global_hist->node_last == NULL) {
+        return NULL;
+    }
+
+    // Check if the current index is out of bounds
+    if (global_hist->index < 0 || (size_t)global_hist->index >= global_hist->size) {
+        return NULL;
+    }
+
+    // Traverse the linked list to find the current node
+    node_t *current_node = global_hist->node_first;
+    for (int i = 0; i < global_hist->index; i++) {
+        current_node = current_node->next;
+    }
+
+    // Return the line from the current node
+    return current_node->line;
 }
 
 // decreases index (arrow up)
 // and return string on index
 char *
-history_get_move_index_up(history_t *hist)
+history_get_move_index_up()
 {
 	// decrease idx
+	global_hist->index--;
 
-	// return
+	return history_get_current_index();
 }
 
 // increases index (arrow down)
 // and return string on index
 char *
-history_get_move_index_down(history_t *hist)
+history_get_move_index_down()
 {
 	// increase idx
+	global_hist->index++;
 
-	// return
+	return history_get_current_index();
 }
 
 // shows the shells most recent 'n'
@@ -123,53 +230,11 @@ show_history(int n)
 	return 1;
 }
 
-char *
-get_previous_command()
-{
-	const char *home_dir = getenv("HOME");
-	if (home_dir == NULL) {
-		fprintf_debug(
-		        stderr, "Error getting previous command: HOME environment variable is not set\n");
-		return NULL;
-	}
-
-	char path[512];
-	strcpy(path, home_dir);
-	strcat(path, "/");
-	strcat(path, HISTFILE);
-
-	FILE *fp = fopen(path, "r");
-	if (fp == NULL) {
-		fprintf_debug(
-		        stderr, "Error getting previous command: could not open file\n");
-		return NULL;
-	}
-
-	char cmd[1024];
-	char last_cmd[1024] = "";
-	while (fgets(cmd, sizeof(cmd), fp) != NULL) {
-		strcpy(last_cmd, cmd);
-	}
-
-	fclose(fp);
-
-	// Remove newline character at the end of the command
-	size_t len = strlen(last_cmd);
-	if (len > 0 && last_cmd[len - 1] == '\n') {
-		last_cmd[len - 1] = '\0';
-	}
-
-	return strdup(last_cmd);
-}
-
-
-// TODO: append to history_t
-// contemplate case history_t size
-// is bigger than max list size
-// (remove first before appending)
+// appends cmd to both file and ram
 int
 append_history(const char *cmd)
 {
+	// append to FILE
 	const char *home_dir = getenv("HOME");
 	if (home_dir == NULL) {
 		fprintf_debug(
@@ -193,6 +258,9 @@ append_history(const char *cmd)
 	// printf_debug("appending: '%s'\n", cmd);
 	fprintf_debug(fp, "%s\n", cmd);
 	fclose(fp);
+
+	// append to RAM -- eval output
+	append_history_list(cmd);
 
 	return 1;
 }

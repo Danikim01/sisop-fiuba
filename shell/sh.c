@@ -3,6 +3,8 @@
 #include "readline.h"
 #include "runcmd.h"
 
+#include "history.h"
+
 char prompt[PRMTLEN] = { 0 };
 
 // runs a shell command
@@ -37,7 +39,11 @@ main(void)
 {
 	init_shell();
 
+	history_init();
+
 	run_shell();
+
+	history_free();
 
 	return 0;
 }
