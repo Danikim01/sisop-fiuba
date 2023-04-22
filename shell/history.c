@@ -102,7 +102,7 @@ history_init()
 		}
 
 		// append the line to the history list
-		int ret = 0;  // append_history_list(line);
+		int ret = append_history_list(line);
 		if (ret != 0) {
 			printf_debug("Error appending line to history: %s\n",
 			             line);
@@ -278,7 +278,7 @@ append_history(const char *cmd)
 	fclose(fp);
 
 	// append to RAM -- eval output
-	// append_history_list(cmd);
+	append_history_list(cmd);
 
 	return 1;
 }
