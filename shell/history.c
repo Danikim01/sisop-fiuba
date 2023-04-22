@@ -19,7 +19,7 @@ typedef struct history {
 } history_t;
 
 
-history_t* global_hist = NULL;
+history_t *global_hist = NULL;
 
 // TODO: limit list size
 // TODO: DO NOT APPEND ' '
@@ -124,24 +124,25 @@ history_free(history_t *hist)
 char *
 history_get_current_index()
 {
-    // Check if the history is empty
-    if (global_hist->node_first == NULL || global_hist->node_last == NULL) {
-        return NULL;
-    }
+	// Check if the history is empty
+	if (global_hist->node_first == NULL || global_hist->node_last == NULL) {
+		return NULL;
+	}
 
-    // Check if the current index is out of bounds
-    if (global_hist->index < 0 || (size_t)global_hist->index >= global_hist->size) {
-        return NULL;
-    }
+	// Check if the current index is out of bounds
+	if (global_hist->index < 0 ||
+	    (size_t) global_hist->index >= global_hist->size) {
+		return NULL;
+	}
 
-    // Traverse the linked list to find the current node
-    node_t *current_node = global_hist->node_first;
-    for (int i = 0; i < global_hist->index; i++) {
-        current_node = current_node->next;
-    }
+	// Traverse the linked list to find the current node
+	node_t *current_node = global_hist->node_first;
+	for (int i = 0; i < global_hist->index; i++) {
+		current_node = current_node->next;
+	}
 
-    // Return the line from the current node
-    return current_node->line;
+	// Return the line from the current node
+	return current_node->line;
 }
 
 // decreases index (arrow up)
