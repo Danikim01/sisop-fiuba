@@ -94,7 +94,7 @@ history_init()
 	// read the file line by line
 	char *line = NULL;
 	size_t len = 0;
-	ssize_t read;
+	ssize_t read = 0;
 	while ((read = getline(&line, &len, fp)) != -1) {
 		// remove trailing newline
 		if (line[read - 1] == '\n') {
@@ -102,7 +102,7 @@ history_init()
 		}
 
 		// append the line to the history list
-		int ret = append_history_list(line);
+		int ret = 0;  // append_history_list(line);
 		if (ret != 0) {
 			printf_debug("Error appending line to history: %s\n",
 			             line);
@@ -278,7 +278,7 @@ append_history(const char *cmd)
 	fclose(fp);
 
 	// append to RAM -- eval output
-	append_history_list(cmd);
+	// append_history_list(cmd);
 
 	return 1;
 }
