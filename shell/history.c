@@ -8,26 +8,11 @@
 
 int append_history_list(const char *cmd);
 
-typedef struct node {
-	char *line;
-	struct node *next;
-} node_t;
-
-typedef struct history {
-	node_t *node_first;
-	node_t *node_last;
-	size_t size;
-	int index;
-} history_t;
-
 history_t *global_hist = NULL;
 
-// TODO: limit list size
-// TODO: DO NOT APPEND ' '
 int
 append_history_list(const char *cmd)
 {
-	// printf_debug("appending: '%s'\n", cmd);
 	if (!global_hist) {
 		return -1;
 	}
@@ -113,7 +98,7 @@ history_init()
 	// free memory and close file
 	free(line);
 	fclose(fp);
-	// printf_debug("finished loading history...\n");
+
 	return;
 }
 
@@ -208,7 +193,6 @@ show_history(int n)
 	strcpy(path, home_dir);
 	strcat(path, "/");
 	strcat(path, HISTFILE);
-	// printf_debug("attempt open to show: '%s'\n", path);
 
 	char cmd[1024];
 	FILE *fp = fopen(path, "r");
@@ -251,7 +235,6 @@ show_history(int n)
 	}
 
 	fclose(fp);
-	// printf_debug("finished showing history\n");
 	return 1;
 }
 
@@ -273,7 +256,6 @@ append_history(const char *cmd)
 	strcpy(path, home_dir);
 	strcat(path, "/");
 	strcat(path, HISTFILE);
-	// printf_debug("attempt open: '%s'\n", path);
 
 	FILE *fp = fopen(path, "a");
 	if (fp == NULL) {
@@ -282,7 +264,6 @@ append_history(const char *cmd)
 		        "Error appending to history: could not open file\n");
 		return 0;
 	}
-	// printf_debug("appending: '%s'\n", cmd);
 	fprintf_debug(fp, "%s\n", cmd);
 	fclose(fp);
 

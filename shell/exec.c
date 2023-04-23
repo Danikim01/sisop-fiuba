@@ -105,51 +105,6 @@ open_redir_fd(char *file, int flags)
 	return fd;
 }
 
-void
-run_pipe(struct pipecmd *p)
-{
-	int fd[2];
-	if (pipe(fd) < 0) {
-		fprintf_debug(stderr, "Pipe failed.\n");
-		return;
-	}
-
-	pid_t left = fork();
-	if (left < 0) {
-		fprintf_debug(stderr, "Fork failed.\n");
-		return;
-	}
-	if (left == 0) {
-		// Child Process
-		dup2(fd[WRITE], STDOUT_FILENO);
-		close(fd[WRITE]);
-		close(fd[READ]);
-
-		exec_cmd(p->leftcmd);
-	}
-
-	pid_t right = fork();
-	if (right < 0) {
-		fprintf_debug(stderr, "Fork failed.\n");
-		kill(left, SIGKILL);
-		return;
-	}
-	if (right == 0) {
-		dup2(fd[READ], STDIN_FILENO);
-		close(fd[WRITE]);
-		close(fd[READ]);
-
-		exec_cmd(p->rightcmd);
-	}
-
-
-	close(fd[READ]);
-	close(fd[WRITE]);
-
-	waitpid(left, NULL, 0);
-	waitpid(right, NULL, 0);
-}
-
 // executes a command - does not return
 //
 // Hint:
@@ -263,11 +218,50 @@ exec_cmd(struct cmd *cmd)
 	}
 
 	case PIPE: {
-		p = (struct pipecmd *) cmd;
-		run_pipe(p);
-		exit(EXIT_SUCCESS);
+	p = (struct pipecmd *) cmd;
 
-		break;
+	int fd[2];
+	if (pipe(fd) < 0) {
+		fprintf_debug(stderr, "Pipe failed.\n");
+		return;
+	}
+
+	pid_t left = fork();
+	if (left < 0) {
+		fprintf_debug(stderr, "Fork failed.\n");
+		return;
+	}
+	if (left == 0) {
+		// Child Process
+		dup2(fd[WRITE], STDOUT_FILENO);
+		close(fd[WRITE]);
+		close(fd[READ]);
+
+		exec_cmd(p->leftcmd);
+	}
+
+	pid_t right = fork();
+	if (right < 0) {
+		fprintf_debug(stderr, "Fork failed.\n");
+		kill(left, SIGKILL);
+		return;
+	}
+	if (right == 0) {
+		dup2(fd[READ], STDIN_FILENO);
+		close(fd[WRITE]);
+		close(fd[READ]);
+
+		exec_cmd(p->rightcmd);
+	}
+
+
+	close(fd[READ]);
+	close(fd[WRITE]);
+
+	waitpid(left, NULL, 0);
+	waitpid(right, NULL, 0);
+
+	exit(EXIT_SUCCESS);
 	}
 	}
 }

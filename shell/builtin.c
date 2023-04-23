@@ -34,7 +34,6 @@ exit_shell(char *cmd)
 int
 change_directory(char *dir)
 {
-	// printf_debug("change dir to: '%s'\n", dir);
 	if (chdir(dir) == -1) {
 		fprintf_debug(stderr,
 		              "ERROR: Failed to set current "
@@ -44,7 +43,6 @@ change_directory(char *dir)
 	}
 
 	char *aux = getcwd(NULL, 0);
-	// dir = aux + dir;
 	snprintf(prompt, sizeof prompt, "(%s)", aux);
 	free(aux);
 
@@ -167,12 +165,10 @@ history(char *cmd)
 			return 1;
 		}
 
-		// printf_debug("argument is '%i'\n", n);
 		free(cmd_copy);
 		return show_history(n);
 	}
 
-	// printf_debug("cmd: '%s' is not history\n", cmd);
 	free(cmd_copy);
 	return 0;
 }

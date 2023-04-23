@@ -7,6 +7,18 @@
 #include "types.h"
 #include "utils.h"
 
+typedef struct node {
+	char *line;
+	struct node *next;
+} node_t;
+
+typedef struct history {
+	node_t *node_first;
+	node_t *node_last;
+	size_t size;
+	int index;
+} history_t;
+
 void history_init(void);  // should be int for error checking
 void history_free(void);  // should be int for error checking
 int show_history(int n);
