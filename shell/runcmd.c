@@ -19,10 +19,10 @@ run_cmd(char *cmd)
 	if (history(cmd))
 		return 0;
 
-	// append to history
-	#ifndef SHELL_NO_INTERACTIVE
-		append_history(cmd);
-	#endif
+// append to history
+#ifndef SHELL_NO_INTERACTIVE
+	append_history(cmd);
+#endif
 
 	// "cd" built-in call
 	if (cd(cmd))  //
@@ -74,10 +74,10 @@ run_cmd(char *cmd)
 		print_status_info(parsed);
 	}
 
-	#ifndef SHELL_NO_INTERACTIVE
-		reset_history_index();
-	#endif
-	
+#ifndef SHELL_NO_INTERACTIVE
+	reset_history_index();
+#endif
+
 	free_command(parsed);
 	return 0;
 }
