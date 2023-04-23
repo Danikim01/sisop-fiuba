@@ -1,4 +1,9 @@
 #include "builtin.h"
+#include <ctype.h>  // used for isNumeric
+
+int change_directory(char *dir);
+int print_cwd(void);
+int isNumeric(char s[]);
 
 // returns true if the 'exit' call
 // should be performed
@@ -73,7 +78,7 @@ cd(char *cmd)
 		if (is_cd_alone) {
 			const char *home_dir = getenv("HOME");
 
-			return change_directory(home_dir);
+			return change_directory((char *) home_dir);
 		}
 
 		return 0;

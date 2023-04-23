@@ -15,6 +15,17 @@ static char buffer[BUFLEN];
 // stores the original terminal settings so they can be restored later
 struct termios saved_attributes;
 
+void reset_input_mode(void);
+void set_input_mode(void);
+void delete_char(void);
+char *input_from_test(const char *prompt);
+char *input_from_stdin(const char *prompt);
+void handle_escape_sequence(int *current_command_index, int *top_index);
+void handle_up_arrow(int *current_command_index, int *top_index);
+void handle_down_arrow(int *current_command_index);
+void handle_right_arrow(int *command_index, int top_index);
+void handle_left_arrow(int *command_index);
+
 void
 reset_input_mode(void)
 {
@@ -88,6 +99,7 @@ input_from_stdin(const char *prompt)
 #ifndef SHELL_NO_INTERACTIVE
 	fprintf(stdout, "%s %s %s\n", COLOR_RED, prompt, COLOR_RESET);
 	fprintf(stdout, "%s", "$ ");
+	fflush(stdout);
 #endif
 
 	memset(buffer, 0, BUFLEN);
@@ -116,7 +128,7 @@ input_from_stdin(const char *prompt)
 			break;
 		case CHAR_ESCSEQ:
 			// arrow key input
-			handle_escape_sequence(&current_command_index, top_index);
+			handle_escape_sequence(&current_command_index, &top_index);
 			break;
 		default:
 			// normal input
@@ -140,7 +152,7 @@ input_from_stdin(const char *prompt)
 }
 
 void
-handle_escape_sequence(int *current_command_index, int top_index)
+handle_escape_sequence(int *current_command_index, int *top_index)
 {
 	char esc_seq;
 	assert(read(STDIN_FILENO, &esc_seq, 1) > 0);
@@ -158,7 +170,7 @@ handle_escape_sequence(int *current_command_index, int top_index)
 		handle_down_arrow(current_command_index);
 		break;
 	case 'C':  // Right arrow
-		handle_right_arrow(current_command_index, top_index);
+		handle_right_arrow(current_command_index, *top_index);
 		break;
 
 	case 'D':  // Left arrow
@@ -180,7 +192,7 @@ handle_up_arrow(int *current_command_index, int *top_index)
 
 		strcpy(buffer, previous_command);
 		*current_command_index = strlen(previous_command);
-		top_index = current_command_index;
+		*top_index = *current_command_index;
 
 		assert(write(STDOUT_FILENO,
 		             previous_command,
