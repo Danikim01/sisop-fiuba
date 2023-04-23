@@ -261,6 +261,9 @@ exec_cmd(struct cmd *cmd)
 		waitpid(left, NULL, 0);
 		waitpid(right, NULL, 0);
 
+		// free the memory allocated
+		// for the pipe tree structure
+		free_command(parsed_pipe);
 		exit(EXIT_SUCCESS);
 	}
 	}

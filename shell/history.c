@@ -99,6 +99,7 @@ history_init()
 	free(line);
 	fclose(fp);
 
+	atexit(history_free);
 	return;
 }
 
