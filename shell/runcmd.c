@@ -9,10 +9,11 @@ extern struct history_t* global_hist;
 void
 handle_event_designators(char** buf)
 {
-	//Supports exclusively !! or !-n, if there are any other command lines either separated
+	//Supports exclusively !! or !-n, if there are any other command limes either separated
 	//by a space or right next to either ! or -n they are not taken into account as 
 	//!! and !-n event dessignators are used to execute a previous command rather than modify them
     if ((*buf)[1] == '!') {
+		if (block_contains(*buf, SPACE) == -1 && strlen(*buf) > 2) return;
         char* aux = history_get_move_index_up();
         strcpy(*buf, aux);
         history_get_move_index_down();
@@ -29,6 +30,8 @@ handle_event_designators(char** buf)
         }
 
         strcpy(aux, *buf + 2); //Get the number in the !-number command
+
+		if (!isNumeric(aux)) return; 
 
         int n = atoi(aux); 
 		//OBS: Atoi fails if the num aux represents is greater than 2^32 and returns some negative
