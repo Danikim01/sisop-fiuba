@@ -13,6 +13,7 @@ int append_history(const char *cmd);
 // used for arrow keys navigation
 char *history_get_move_index_up(void);
 char *history_get_move_index_down(void);
+char *history_get_current_index(void);
 void reset_history_index(void);
 
 #endif  // HISTORY_H

@@ -7,7 +7,6 @@
 #define HISTFILE ".fisop_history"
 
 int append_history_list(const char *cmd);
-char *history_get_current_index(void);
 
 typedef struct node {
 	char *line;

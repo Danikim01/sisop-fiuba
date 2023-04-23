@@ -1,7 +1,6 @@
 #include "readline.h"
 #include "history.h"
 
-
 #include <assert.h>
 #include <ctype.h>
 #include <stdio.h>
@@ -11,28 +10,31 @@
 
 #include "defs.h"
 
+#include <sys/ioctl.h>
+
 static char buffer[BUFLEN];
 // stores the original terminal settings so they can be restored later
 struct termios saved_attributes;
 
-void reset_input_mode(void);
-void set_input_mode(void);
-void delete_char(void);
 char *input_from_test(const char *prompt);
 char *input_from_stdin(const char *prompt);
-void handle_escape_sequence(int *current_command_index, int *top_index);
-void handle_up_arrow(int *current_command_index, int *top_index);
-void handle_down_arrow(int *current_command_index);
-void handle_right_arrow(int *command_index, int top_index);
-void handle_left_arrow(int *command_index);
+char *handle_exclamation(void);
 
-void
+static int
+get_terminal_width(void)
+{
+	struct winsize w;
+	ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+	return w.ws_col;
+}
+
+static void
 reset_input_mode(void)
 {
 	tcsetattr(STDIN_FILENO, TCSANOW, &saved_attributes);
 }
 
-void
+static void
 set_input_mode(void)
 {
 	struct termios tattr;
@@ -50,7 +52,7 @@ set_input_mode(void)
 	tcsetattr(STDIN_FILENO, TCSAFLUSH, &tattr);
 }
 
-void
+static void
 delete_char()
 {
 	assert(write(STDOUT_FILENO, "\b \b", 3) > 0);
@@ -83,6 +85,160 @@ input_from_test(const char *prompt)
 	buffer[i] = END_STRING;
 
 	return buffer;
+}
+
+char *
+handle_exclamation(void)
+{
+	char aux_char;
+	char *desired_command = NULL;
+	assert(read(STDIN_FILENO, &aux_char, 1) > 0);
+	if (write(STDOUT_FILENO, &aux_char, 1) < 0) {
+		printf_debug("Error writing to stdout\n");
+	}
+	if (aux_char == '!') {
+		// Add a newline after printing !!
+		if (write(STDOUT_FILENO, "\n", 1) < 0) {
+			printf_debug("Error writing to stdout\n");
+		}
+		desired_command = history_get_move_index_up();
+		history_get_current_index();
+		if (write(STDOUT_FILENO, desired_command, strlen(desired_command)) <
+		    0) {
+			printf_debug("Error writing to stdout\n");
+		}
+
+		// Add a newline after printing desired_command
+		if (write(STDOUT_FILENO, "\n", 1) < 0) {
+			printf_debug("Error writing to stdout\n");
+		}
+
+	} else {
+		int number = 0;
+		if (aux_char == '-') {
+			while (aux_char != END_LINE) {
+				assert(read(STDIN_FILENO, &aux_char, 1) > 0);
+				if (write(STDOUT_FILENO, &aux_char, 1) < 0) {
+					printf_debug(
+					        "Error writing to stdout\n");
+				}
+
+				if (isdigit(aux_char)) {
+					number = number * 10 + (aux_char - '0');
+				}
+			}
+		}
+		// number it's correctly load so now just get the number command from linked list
+		desired_command =
+		        "ls";  // for now so we don't get seg fault, change this!
+	}
+
+	return desired_command;
+}
+
+static void
+handle_up_arrow(int *current_command_index, int *top_index)
+{
+	char *previous_command = history_get_move_index_up();
+
+	if (previous_command != NULL) {
+		for (int i = 0; i < (*top_index - *current_command_index); i++) {
+			assert(write(STDOUT_FILENO, "\x1b[C", 3) > 0);
+		}
+		// Clear the entire line
+		for (int i = 0; i < *top_index; i++) {
+			delete_char();
+		}
+
+		// Reset the buffer
+		memset(buffer, 0, BUFLEN);
+
+		// Replace the buffer with the previous command
+		strcpy(buffer, previous_command);
+		*current_command_index = strlen(previous_command);
+		*top_index = *current_command_index;
+
+
+		// Display the previous command
+		assert(write(STDOUT_FILENO,
+		             previous_command,
+		             *current_command_index) > 0);
+	}
+}
+
+static void
+handle_down_arrow(int *current_command_index, int *top_index)
+{
+	char *next_command = history_get_move_index_down();
+
+	if (next_command != NULL) {
+		for (int i = 0; i < (*top_index - *current_command_index); i++) {
+			assert(write(STDOUT_FILENO, "\x1b[C", 3) > 0);
+		}
+		// Clear the entire line
+		for (int i = 0; i < *top_index; i++) {
+			delete_char();
+		}
+
+		// Reset the buffer
+		memset(buffer, 0, BUFLEN);
+
+		// Replace the buffer with the previous command
+		strcpy(buffer, next_command);
+		*current_command_index = strlen(next_command);
+		*top_index = *current_command_index;
+
+
+		// Display the previous command
+		assert(write(STDOUT_FILENO, next_command, *current_command_index) >
+		       0);
+	}
+}
+
+static void
+handle_right_arrow(int *command_index, int top_index)
+{
+	if (*command_index < top_index) {
+		assert(write(STDOUT_FILENO, "\x1b[C", 3) > 0);
+		(*command_index)++;
+	}
+}
+
+static void
+handle_left_arrow(int *command_index)
+{
+	if (*command_index > 0) {
+		assert(write(STDOUT_FILENO, "\x1b[D", 3) > 0);
+		(*command_index)--;
+	}
+}
+
+static void
+handle_escape_sequence(int *current_command_index, int *top_index)
+{
+	char esc_seq;
+	assert(read(STDIN_FILENO, &esc_seq, 1) > 0);
+	if (esc_seq != '[') {
+		return;
+	}
+
+	assert(read(STDIN_FILENO, &esc_seq, 1) > 0);
+
+	switch (esc_seq) {
+	case 'A':
+		handle_up_arrow(current_command_index, top_index);
+		break;
+	case 'B':
+		handle_down_arrow(current_command_index, top_index);
+		break;
+	case 'C':  // Right arrow
+		handle_right_arrow(current_command_index, *top_index);
+		break;
+
+	case 'D':  // Left arrow
+		handle_left_arrow(current_command_index);
+		break;
+	}
 }
 
 char *
@@ -121,11 +277,49 @@ input_from_stdin(const char *prompt)
 		case CHAR_DEL:
 			// backspace input
 			if (current_command_index > 0) {
-				delete_char();
-				buffer[current_command_index--] = '\0';
-				top_index--;
+				if (current_command_index % (get_terminal_width()) ==
+				    0) {
+					// Move the cursor up and to the end of the previous line
+					assert(write(STDOUT_FILENO, "\x1b[A", 3) >
+					       0);
+					int cursor_offset =
+					        (current_command_index) -
+					        (get_terminal_width());
+					if (cursor_offset == 0) {
+						cursor_offset =
+						        get_terminal_width();
+					} else {
+						cursor_offset =
+						        get_terminal_width() -
+						        cursor_offset;
+					}
+					for (int i = 0; i < cursor_offset; i++) {
+						assert(write(STDOUT_FILENO,
+						             "\x1b[C",
+						             3) > 0);
+					}
+
+					buffer[current_command_index--] = '\0';
+					top_index--;
+
+					// Check if we are at the first character of the line
+					if (current_command_index %
+					            (get_terminal_width()) ==
+					    1) {
+					} else {
+						delete_char();
+						buffer[--current_command_index] =
+						        '\0';
+						top_index--;
+					}
+				} else {
+					delete_char();
+					buffer[--current_command_index] = '\0';
+					top_index--;
+				}
 			}
 			break;
+
 		case CHAR_ESCSEQ:
 			// arrow key input
 			handle_escape_sequence(&current_command_index, &top_index);
@@ -136,7 +330,25 @@ input_from_stdin(const char *prompt)
 				assert(write(STDOUT_FILENO, &c, 1) > 0);
 				buffer[current_command_index++] = c;
 				top_index++;
+
+				// Check for line wrapping
+				if (current_command_index % (get_terminal_width()) ==
+				    0) {
+					// buffer[current_command_index++] = '\n';
+					buffer[current_command_index++] = c;
+					top_index++;
+				}
 			}
+			break;
+
+		case '!':
+			char *previous_command;
+			if (write(STDOUT_FILENO, &c, 1) < 0) {
+				printf_debug("Error writing to stdout\n");
+			}
+			previous_command = handle_exclamation();
+			strcpy(buffer, previous_command);
+			return buffer;
 			break;
 		}
 	}
@@ -151,104 +363,13 @@ input_from_stdin(const char *prompt)
 	}
 }
 
-void
-handle_escape_sequence(int *current_command_index, int *top_index)
-{
-	char esc_seq;
-	assert(read(STDIN_FILENO, &esc_seq, 1) > 0);
-	if (esc_seq != '[') {
-		return;
-	}
-
-	assert(read(STDIN_FILENO, &esc_seq, 1) > 0);
-
-	switch (esc_seq) {
-	case 'A':
-		handle_up_arrow(current_command_index, top_index);
-		break;
-	case 'B':
-		handle_down_arrow(current_command_index);
-		break;
-	case 'C':  // Right arrow
-		handle_right_arrow(current_command_index, *top_index);
-		break;
-
-	case 'D':  // Left arrow
-		handle_left_arrow(current_command_index);
-		break;
-	}
-}
-
-void
-handle_up_arrow(int *current_command_index, int *top_index)
-{
-	char *previous_command = history_get_move_index_up();
-
-	if (previous_command != NULL) {
-		while (*current_command_index > 0) {
-			delete_char();
-			buffer[--(*current_command_index)] = '\0';
-		}
-
-		strcpy(buffer, previous_command);
-		*current_command_index = strlen(previous_command);
-		*top_index = *current_command_index;
-
-		assert(write(STDOUT_FILENO,
-		             previous_command,
-		             *current_command_index) > 0);
-
-		// free(previous_command);
-	}
-}
-
-void
-handle_down_arrow(int *current_command_index)
-{
-	char *next_command = history_get_move_index_down();
-
-	if (next_command != NULL) {
-		while (*current_command_index > 0) {
-			delete_char();
-			buffer[--(*current_command_index)] = '\0';
-		}
-
-		strcpy(buffer, next_command);
-		*current_command_index = strlen(next_command);
-
-		assert(write(STDOUT_FILENO, next_command, *current_command_index) >
-		       0);
-
-		// free(previous_command);
-	}
-}
-
-void
-handle_right_arrow(int *command_index, int top_index)
-{
-	if (*command_index < top_index) {
-		assert(write(STDOUT_FILENO, "\x1b[C", 3) > 0);
-		(*command_index)++;
-	}
-}
-
-void
-handle_left_arrow(int *command_index)
-{
-	if (*command_index > 0) {
-		assert(write(STDOUT_FILENO, "\x1b[D", 3) > 0);
-		(*command_index)--;
-	}
-}
-
-
 // reads a line from the standard input
 // and prints the prompt
 char *
 read_line(const char *prompt)
 {
-	if (isatty(STDIN_FILENO)) {
+	if (isatty(STDIN_FILENO))
 		return input_from_stdin(prompt);
-	} else
+	else
 		return input_from_test(prompt);
 }
