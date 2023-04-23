@@ -39,11 +39,15 @@ main(void)
 {
 	init_shell();
 
+#ifndef SHELL_NO_INTERACTIVE
 	history_init();
+#endif
 
 	run_shell();
 
+#ifndef SHELL_NO_INTERACTIVE
 	history_free();
+#endif
 
 	return 0;
 }

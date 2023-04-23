@@ -50,6 +50,7 @@ change_directory(char *dir)
 	char *aux = getcwd(NULL, 0);
 	// dir = aux + dir;
 	snprintf(prompt, sizeof prompt, "(%s)", aux);
+	free(aux);
 
 	return 1;
 }
