@@ -218,50 +218,50 @@ exec_cmd(struct cmd *cmd)
 	}
 
 	case PIPE: {
-	p = (struct pipecmd *) cmd;
+		p = (struct pipecmd *) cmd;
 
-	int fd[2];
-	if (pipe(fd) < 0) {
-		fprintf_debug(stderr, "Pipe failed.\n");
-		return;
-	}
+		int fd[2];
+		if (pipe(fd) < 0) {
+			fprintf_debug(stderr, "Pipe failed.\n");
+			return;
+		}
 
-	pid_t left = fork();
-	if (left < 0) {
-		fprintf_debug(stderr, "Fork failed.\n");
-		return;
-	}
-	if (left == 0) {
-		// Child Process
-		dup2(fd[WRITE], STDOUT_FILENO);
-		close(fd[WRITE]);
+		pid_t left = fork();
+		if (left < 0) {
+			fprintf_debug(stderr, "Fork failed.\n");
+			return;
+		}
+		if (left == 0) {
+			// Child Process
+			dup2(fd[WRITE], STDOUT_FILENO);
+			close(fd[WRITE]);
+			close(fd[READ]);
+
+			exec_cmd(p->leftcmd);
+		}
+
+		pid_t right = fork();
+		if (right < 0) {
+			fprintf_debug(stderr, "Fork failed.\n");
+			kill(left, SIGKILL);
+			return;
+		}
+		if (right == 0) {
+			dup2(fd[READ], STDIN_FILENO);
+			close(fd[WRITE]);
+			close(fd[READ]);
+
+			exec_cmd(p->rightcmd);
+		}
+
+
 		close(fd[READ]);
-
-		exec_cmd(p->leftcmd);
-	}
-
-	pid_t right = fork();
-	if (right < 0) {
-		fprintf_debug(stderr, "Fork failed.\n");
-		kill(left, SIGKILL);
-		return;
-	}
-	if (right == 0) {
-		dup2(fd[READ], STDIN_FILENO);
 		close(fd[WRITE]);
-		close(fd[READ]);
 
-		exec_cmd(p->rightcmd);
-	}
+		waitpid(left, NULL, 0);
+		waitpid(right, NULL, 0);
 
-
-	close(fd[READ]);
-	close(fd[WRITE]);
-
-	waitpid(left, NULL, 0);
-	waitpid(right, NULL, 0);
-
-	exit(EXIT_SUCCESS);
+		exit(EXIT_SUCCESS);
 	}
 	}
 }
