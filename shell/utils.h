@@ -3,6 +3,8 @@
 
 #include "defs.h"
 
+int isNumeric(char s[]);
+
 char *split_line(char *buf, char splitter);
 
 int block_contains(char *buf, char c);

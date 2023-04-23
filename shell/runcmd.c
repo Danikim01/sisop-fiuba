@@ -9,6 +9,9 @@ extern struct history_t* global_hist;
 void
 handle_event_designators(char** buf)
 {
+	//Supports exclusively !! or !-n, if there are any other command lines either separated
+	//by a space or right next to either ! or -n they are not taken into account as 
+	//!! and !-n event dessignators are used to execute a previous command rather than modify them
     if ((*buf)[1] == '!') {
         char* aux = history_get_move_index_up();
         strcpy(*buf, aux);
@@ -90,7 +93,10 @@ run_cmd(char *cmd)
 	//Event designators are handled here because its needed to handle them before parsing
 	//and before checks for built in command are made, but after appending in history
 	//because commands runned by using an event dessignator are not added to history
-	if (cmd[0] == '!') handle_event_designators(&cmd);
+	if (cmd[0] == '!') {
+		handle_event_designators(&cmd);
+		printf("%s\n", cmd); //it prints the command to be executed before doing so
+	}
 
 	// "cd" built-in call
 	if (cd(cmd))  //

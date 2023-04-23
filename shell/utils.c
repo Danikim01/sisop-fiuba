@@ -1,5 +1,17 @@
 #include "utils.h"
 #include <stdarg.h>
+#include <ctype.h>  // used for isNumeric
+
+// https://www.w3schools.blog/check-if-string-is-number-c
+int
+isNumeric(char s[])
+{
+	for (int i = 0; s[i] != '\0'; i++) {
+		if (isdigit(s[i]) == 0)
+			return 0;
+	}
+	return 1;
+}
 
 // splits a string line in two
 // according to the splitter character

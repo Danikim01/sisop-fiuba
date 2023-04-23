@@ -1,9 +1,5 @@
 #include "builtin.h"
-#include <ctype.h>  // used for isNumeric
-
-int change_directory(char *dir);
-int print_cwd(void);
-int isNumeric(char s[]);
+#include "utils.h"
 
 // returns true if the 'exit' call
 // should be performed
@@ -142,17 +138,6 @@ pwd(char *cmd)
 	}
 
 	return 0;
-}
-
-// https://www.w3schools.blog/check-if-string-is-number-c
-int
-isNumeric(char s[])
-{
-	for (int i = 0; s[i] != '\0'; i++) {
-		if (isdigit(s[i]) == 0)
-			return 0;
-	}
-	return 1;
 }
 
 // returns true if `history` was invoked

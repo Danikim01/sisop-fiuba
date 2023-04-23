@@ -5,6 +5,10 @@
 #include "utils.h"
 #include "history.h"
 
+int change_directory(char *dir);
+
+int print_cwd(void);
+
 extern char prompt[PRMTLEN];
 
 int cd(char *cmd);
