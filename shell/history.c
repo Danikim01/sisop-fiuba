@@ -57,7 +57,6 @@ append_history_list(const char *cmd)
 void
 history_init()
 {
-	// printf_debug("loading history...\n");
 	global_hist = calloc(1, sizeof(history_t));
 	if (!global_hist) {
 		printf_debug("Error allocating memory for history\n");

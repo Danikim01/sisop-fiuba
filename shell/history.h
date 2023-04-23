@@ -1,6 +1,8 @@
 #ifndef HISTORY_H
 #define HISTORY_H
 
+#define MAX_HIST_SIZE 2000
+
 #include "defs.h"
 #include "types.h"
 #include "utils.h"

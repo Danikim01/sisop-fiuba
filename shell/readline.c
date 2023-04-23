@@ -16,10 +16,6 @@ static char buffer[BUFLEN];
 // stores the original terminal settings so they can be restored later
 struct termios saved_attributes;
 
-char *input_from_test(const char *prompt);
-char *input_from_stdin(const char *prompt);
-char *handle_exclamation(void);
-
 static int
 get_terminal_width(void)
 {
@@ -85,55 +81,6 @@ input_from_test(const char *prompt)
 	buffer[i] = END_STRING;
 
 	return buffer;
-}
-
-char *
-handle_exclamation(void)
-{
-	char aux_char;
-	char *desired_command = NULL;
-	assert(read(STDIN_FILENO, &aux_char, 1) > 0);
-	if (write(STDOUT_FILENO, &aux_char, 1) < 0) {
-		printf_debug("Error writing to stdout\n");
-	}
-	if (aux_char == '!') {
-		// Add a newline after printing !!
-		if (write(STDOUT_FILENO, "\n", 1) < 0) {
-			printf_debug("Error writing to stdout\n");
-		}
-		desired_command = history_get_move_index_up();
-		history_get_current_index();
-		if (write(STDOUT_FILENO, desired_command, strlen(desired_command)) <
-		    0) {
-			printf_debug("Error writing to stdout\n");
-		}
-
-		// Add a newline after printing desired_command
-		if (write(STDOUT_FILENO, "\n", 1) < 0) {
-			printf_debug("Error writing to stdout\n");
-		}
-
-	} else {
-		int number = 0;
-		if (aux_char == '-') {
-			while (aux_char != END_LINE) {
-				assert(read(STDIN_FILENO, &aux_char, 1) > 0);
-				if (write(STDOUT_FILENO, &aux_char, 1) < 0) {
-					printf_debug(
-					        "Error writing to stdout\n");
-				}
-
-				if (isdigit(aux_char)) {
-					number = number * 10 + (aux_char - '0');
-				}
-			}
-		}
-		// number it's correctly load so now just get the number command from linked list
-		desired_command =
-		        "ls";  // for now so we don't get seg fault, change this!
-	}
-
-	return desired_command;
 }
 
 static void
@@ -339,16 +286,6 @@ input_from_stdin(const char *prompt)
 					top_index++;
 				}
 			}
-			break;
-
-		case '!':
-			char *previous_command;
-			if (write(STDOUT_FILENO, &c, 1) < 0) {
-				printf_debug("Error writing to stdout\n");
-			}
-			previous_command = handle_exclamation();
-			strcpy(buffer, previous_command);
-			return buffer;
 			break;
 		}
 	}

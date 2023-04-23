@@ -1,7 +1,70 @@
 #include "runcmd.h"
+#include "history.h"
 
 int status = 0;
 struct cmd *parsed_pipe;
+
+extern struct history_t* global_hist;
+
+void
+handle_event_designators(char** buf)
+{
+    if ((*buf)[1] == '!') {
+        char* aux = history_get_move_index_up();
+        strcpy(*buf, aux);
+        history_get_move_index_down();
+    }
+    
+    if ((*buf)[1] == '-') {
+        //Dynamic memory is exclusively used for strcpy to have a valid memory
+        //location to copy to
+        int num_size = sizeof(int) * strlen(*buf) - 2 + 1; // +1 for null terminator
+        char* aux = malloc(num_size);
+        if (aux == NULL) {
+            fprintf_debug(stderr, "Malloc failed\n.");
+            return;
+        }
+
+        strcpy(aux, *buf + 2); //Get the number in the !-number command
+
+        int n = atoi(aux); 
+		//OBS: Atoi fails if the num aux represents is greater than 2^32 and returns some negative
+		//number, didn`t take it into consideration because by convention history size is at max 2000
+        if (n <= 0) {
+            fprintf_debug(stderr, "Atoi failed.\n");
+            return;
+        }
+
+		if (n > MAX_HIST_SIZE) {
+			fprintf_debug(stderr, "Index %d is out of bounds.\n", n);
+			return;
+		}
+        
+        //Get the N-th last command
+        for (int i = 0; i < n; i++) {
+            char* temp = history_get_move_index_up();
+            if (strlen(temp) > strlen(aux)) {
+                aux = realloc(aux, sizeof(char) * strlen(temp) + 1);
+                if (aux == NULL) {
+                    fprintf_debug(stderr, "Realloc failed.\n");
+                    free(aux);
+                    return;
+                }
+            }
+            strcpy(aux, temp);
+        }
+
+        strcpy(*buf, aux);
+
+        //Return index to its original position
+        for (int i = 0; i < n; i++) {
+            history_get_move_index_down();
+        }
+
+        free(aux);
+    }
+}
+
 
 // runs the command in 'cmd'
 int
@@ -21,8 +84,13 @@ run_cmd(char *cmd)
 
 // append to history
 #ifndef SHELL_NO_INTERACTIVE
-	append_history(cmd);
+	if (cmd[0] != '!') append_history(cmd);
 #endif
+
+	//Event designators are handled here because its needed to handle them before parsing
+	//and before checks for built in command are made, but after appending in history
+	//because commands runned by using an event dessignator are not added to history
+	if (cmd[0] == '!') handle_event_designators(&cmd);
 
 	// "cd" built-in call
 	if (cd(cmd))  //
