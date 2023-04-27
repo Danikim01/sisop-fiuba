@@ -7,6 +7,7 @@
 
 #include "malloc.h"
 #include "printfmt.h"
+#include <sys/mman.h>
 
 #define ALIGN4(s) (((((s) -1) >> 2) << 2) + 4)
 #define REGION2PTR(r) ((r) + 1)
@@ -34,6 +35,14 @@ find_free_region(size_t size)
 
 #ifdef FIRST_FIT
 	// Your code here for "first fit"
+	while (next != NULL) {
+		if (next->size >= size && free) {
+			return next;
+		}
+		next = next->next;
+	}
+
+	return NULL;
 #endif
 
 #ifdef BEST_FIT
@@ -43,25 +52,58 @@ find_free_region(size_t size)
 	return next;
 }
 
+// static struct region *
+// grow_heap(size_t size)
+// {
+// 	// finds the current heap break
+// 	struct region *curr = (struct region *) sbrk(0);
+
+// 	// allocates the requested size
+// 	struct region *prev =
+// 	        (struct region *) sbrk(sizeof(struct region) + size);
+
+// 	// verifies that the returned address
+// 	// is the same that the previous break
+// 	// (ref: sbrk(2))
+// 	assert(curr == prev);
+
+// 	// verifies that the allocation
+// 	// is successful
+// 	//
+// 	// (ref: sbrk(2))
+// 	if (curr == (struct region *) -1) {
+// 		return NULL;
+// 	}
+
+// 	// first time here
+// 	if (!region_free_list) {
+// 		region_free_list = curr;
+// 	}
+
+// 	curr->size = size;
+// 	curr->next = NULL;
+// 	curr->free = false;
+
+// 	return curr;
+// }
+
 static struct region *
 grow_heap(size_t size)
 {
-	// finds the current heap break
-	struct region *curr = (struct region *) sbrk(0);
+	// Se establecen los permisos de lectura/escritura (PROT_READ |
+	// PROT_WRITE) y se utilizan las opciones MAP_PRIVATE y MAP_ANONYMOUS
+	// para obtener una copia privada y sin archivo de la región de memoria.
+	struct region *curr = (struct region *) mmap(NULL,
+	                                             sizeof(struct region) + size,
+	                                             PROT_READ | PROT_WRITE,
+	                                             MAP_PRIVATE | MAP_ANONYMOUS,
+	                                             -1,
+	                                             0);
 
-	// allocates the requested size
-	struct region *prev =
-	        (struct region *) sbrk(sizeof(struct region) + size);
-
-	// verifies that the returned address
-	// is the same that the previous break
-	// (ref: sbrk(2))
-	assert(curr == prev);
 
 	// verifies that the allocation
 	// is successful
 	//
-	// (ref: sbrk(2))
 	if (curr == (struct region *) -1) {
 		return NULL;
 	}
@@ -77,6 +119,7 @@ grow_heap(size_t size)
 
 	return curr;
 }
+
 
 /// Public API of malloc library ///
 
