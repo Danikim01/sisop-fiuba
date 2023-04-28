@@ -73,6 +73,42 @@ correct_amount_of_requested_memory(void)
 	            stats.requested_memory == 100);
 }
 
+static void
+hago_varios_mallocs(void)
+{
+	char *test_string = "FISOP malloc is working!";
+
+	char *var = malloc(100);
+
+	strcpy(var, test_string);
+
+	ASSERT_TRUE("allocated memory should contain the copied value",
+	            strcmp(var, test_string) == 0);
+
+	char *test_string2 = "FISOP malloc is working!2";
+
+	char *var2 = malloc(200);
+
+	strcpy(var2, test_string2);
+
+	ASSERT_TRUE("allocated memory should contain the copied value",
+	            strcmp(var2, test_string2) == 0);
+
+	char *test_string3 = "FISOP malloc is working!3";
+
+	char *var3 = malloc(200);
+
+	strcpy(var3, test_string3);
+
+	ASSERT_TRUE("allocated memory should contain the copied value",
+	            strcmp(var3, test_string3) == 0);
+	
+	
+	free(var);
+	free(var2);
+	free(var3);
+}
+
 int
 main(void)
 {
@@ -81,6 +117,8 @@ main(void)
 	run_test(correct_amount_of_mallocs);
 	run_test(correct_amount_of_frees);
 	run_test(correct_amount_of_requested_memory);
-
+	
+	
+	run_test(hago_varios_mallocs);
 	return 0;
 }
