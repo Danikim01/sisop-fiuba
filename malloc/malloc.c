@@ -22,8 +22,8 @@ struct region {
 };
 
 struct block {
-  size_t size;
-  struct region *first_region;
+	size_t size;
+	struct region *first_region;
 };
 
 struct block *first_block = NULL;
@@ -152,21 +152,22 @@ grow_heap(size_t size)
 // }
 
 static struct region *
-first_fit(size_t size,struct region *current){
-	while(current){
+first_fit(size_t size, struct region *current)
+{
+	while (current) {
 		if (current->free && current->size >= size) {
 			return current;
 		}
-		current=current->next;
+		current = current->next;
 	}
 	// No se encontró ninguna región libre, se necesita asignar una nueva
 	struct region *new_region = grow_heap(size);
-    if (!new_region) {
-        return NULL;
-    }
-    // Agregar la nueva región al final del bloque
-    current= new_region;
-    return new_region;
+	if (!new_region) {
+		return NULL;
+	}
+	// Agregar la nueva región al final del bloque
+	current = new_region;
+	return new_region;
 }
 
 void *
@@ -176,20 +177,29 @@ malloc(size_t size)
 	size = ALIGN4(size);
 	amount_of_mallocs++;
 	requested_memory += size;
-	if(first_block==NULL)
-	{
-		first_block=mmap(NULL,BLOCK_SIZE,PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+	if (first_block == NULL) {
+		first_block = mmap(NULL,
+		                   BLOCK_SIZE,
+		                   PROT_READ | PROT_WRITE,
+		                   MAP_PRIVATE | MAP_ANONYMOUS,
+		                   -1,
+		                   0);
 		if (first_block == MAP_FAILED) {
-            return NULL;
-        }
-		// block->first_region está asignando la dirección de la primera región del bloque de memoria al puntero 
-		//first_region del struct heap_block.
-		//De esta manera, first_region apunta al inicio de la primera región de memoria disponible en el bloque.
-		first_block->first_region = (struct region *)((char *)first_block + sizeof(struct block));
-		first_block->size = BLOCK_SIZE - sizeof(struct block) - sizeof(struct region);
+			return NULL;
+		}
+		// block->first_region está asignando la dirección de la primera
+		// región del bloque de memoria al puntero
+		// first_region del struct heap_block.
+		// De esta manera, first_region apunta al inicio de la primera
+		// región de memoria disponible en el bloque.
+		first_block->first_region =
+		        (struct region *) ((char *) first_block +
+		                           sizeof(struct block));
+		first_block->size = BLOCK_SIZE - sizeof(struct block) -
+		                    sizeof(struct region);
 	}
-	next = first_fit(size,first_block->first_region);
-	return REGION2PTR(next);	
+	next = first_fit(size, first_block->first_region);
+	return REGION2PTR(next);
 }
 
 void

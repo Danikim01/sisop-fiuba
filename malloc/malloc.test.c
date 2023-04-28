@@ -102,8 +102,8 @@ hago_varios_mallocs(void)
 
 	ASSERT_TRUE("allocated memory should contain the copied value",
 	            strcmp(var3, test_string3) == 0);
-	
-	
+
+
 	free(var);
 	free(var2);
 	free(var3);
@@ -117,8 +117,8 @@ main(void)
 	run_test(correct_amount_of_mallocs);
 	run_test(correct_amount_of_frees);
 	run_test(correct_amount_of_requested_memory);
-	
-	
+
+
 	run_test(hago_varios_mallocs);
 	return 0;
 }
