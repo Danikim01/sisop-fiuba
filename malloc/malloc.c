@@ -156,18 +156,58 @@ first_fit(size_t size, struct region *current)
 {
 	while (current) {
 		if (current->free && current->size >= size) {
+			current->free = false;
 			return current;
 		}
 		current = current->next;
 	}
 	// No se encontró ninguna región libre, se necesita asignar una nueva
-	struct region *new_region = grow_heap(size);
-	if (!new_region) {
+	// struct region *new_region = grow_heap(size);
+	// if (!new_region) {
+	// 	return NULL;
+	// }
+	// // Agregar la nueva región al final del bloque
+	// current = new_region;
+	// return new_region;
+	return NULL;
+}
+
+// crea una nueva region que ocupa todo el bloque
+struct region *
+initialize_region(struct region *nueva_region, struct block *nuevo_bloque)
+{
+	nueva_region = (struct region *) nuevo_bloque->first_region;
+	nueva_region->free = false;
+	nueva_region->size =
+	        nuevo_bloque->size - sizeof(*nuevo_bloque) -
+	        sizeof(*(nuevo_bloque->first_region));
+	nueva_region->next = NULL;
+	nuevo_bloque->first_region = nueva_region;
+	return nueva_region;
+}
+
+struct bloque *initialize_block(struct block*nuevo_bloque) {
+	void *memoria = 
+				mmap(NULL,  
+	             BLOCK_SIZE,
+	             PROT_READ | PROT_WRITE,
+	             MAP_PRIVATE | MAP_ANONYMOUS,
+	             -1,  
+	             0);
+	if (memoria == MAP_FAILED)
 		return NULL;
-	}
-	// Agregar la nueva región al final del bloque
-	current = new_region;
-	return new_region;
+	nuevo_bloque = (struct block*) memoria;  
+	
+	//nuevo_bloque->first_region = (struct region *) memoria + sizeof(*nuevo_bloque); 
+	//establece la posición inicial de la primera región dentro del bloque de memoria recién inicializado.
+
+	nuevo_bloque->first_region = (struct region *) memoria + sizeof(*nuevo_bloque);  
+	nuevo_bloque->size = BLOCK_SIZE;
+
+	if (!first_block)
+			first_block = nuevo_bloque;
+	
+	return nuevo_bloque;
 }
 
 void *
@@ -177,28 +217,24 @@ malloc(size_t size)
 	size = ALIGN4(size);
 	amount_of_mallocs++;
 	requested_memory += size;
-	if (first_block == NULL) {
-		first_block = mmap(NULL,
-		                   BLOCK_SIZE,
-		                   PROT_READ | PROT_WRITE,
-		                   MAP_PRIVATE | MAP_ANONYMOUS,
-		                   -1,
-		                   0);
-		if (first_block == MAP_FAILED) {
-			return NULL;
-		}
-		// block->first_region está asignando la dirección de la primera
-		// región del bloque de memoria al puntero
-		// first_region del struct heap_block.
-		// De esta manera, first_region apunta al inicio de la primera
-		// región de memoria disponible en el bloque.
-		first_block->first_region =
-		        (struct region *) ((char *) first_block +
-		                           sizeof(struct block));
-		first_block->size = BLOCK_SIZE - sizeof(struct block) -
-		                    sizeof(struct region);
+	
+	//inicializo el bloque
+	struct block *nuevo_bloque = first_block;
+	if(nuevo_bloque==NULL){
+		nuevo_bloque = initialize_block(NULL);
 	}
-	next = first_fit(size, first_block->first_region);
+	
+	//Encuentro la primer region que este libre dentro del bloque
+	next = first_fit(size, nuevo_bloque->first_region);
+	if(next){
+		return REGION2PTR(next);
+	}
+
+	//En caso contrario, inicializo una region.
+	next = initialize_region(next, nuevo_bloque);
+	if (!next) {
+		return NULL;
+	}
 	return REGION2PTR(next);
 }
 
