@@ -9,6 +9,7 @@
 #include "printfmt.h"
 #include <sys/mman.h>
 
+
 #define ALIGN4(s) (((((s) -1) >> 2) << 2) + 4)
 #define REGION2PTR(r) ((r) + 1)
 #define PTR2REGION(ptr) ((struct region *) (ptr) -1)
@@ -18,6 +19,7 @@
 struct region {
 	bool free;
 	size_t size;
+	int id;
 	struct region *next;
 };
 
@@ -28,7 +30,7 @@ struct block {
 
 struct block *first_block = NULL;
 struct region *region_free_list = NULL;
-
+int constante = 0;
 int amount_of_mallocs = 0;
 int amount_of_frees = 0;
 int requested_memory = 0;
@@ -124,69 +126,40 @@ grow_heap(size_t size)
 }
 
 
-/// Public API of malloc library ///
-
-// void *
-// malloc(size_t size)
-// {
-// 	struct region *next;
-
-// 	// aligns to multiple of 4 bytes
-// 	size = ALIGN4(size);
-
-// 	// updates statistics
-// 	amount_of_mallocs++;
-// 	requested_memory += size;
-
-// 	next = find_free_region(size);
-
-// 	if (!next) {
-// 		next = grow_heap(size);
-// 	}
-
-// 	// Your code here
-// 	//
-// 	// hint: maybe split free regions?
-
-// 	return REGION2PTR(next);
-// }
-
 static struct region *
-first_fit(size_t size, struct region *current)
+first_fit(size_t size)
 {
+	if(!first_block){
+		return NULL;
+	}
+	struct region *current = first_block->first_region;
 	while (current) {
 		if (current->free && current->size >= size) {
+			printfmt("La region con id %d esta libre, la ocupo\n",current->id);
 			current->free = false;
 			return current;
 		}
 		current = current->next;
 	}
-	// No se encontró ninguna región libre, se necesita asignar una nueva
-	// struct region *new_region = grow_heap(size);
-	// if (!new_region) {
-	// 	return NULL;
-	// }
-	// // Agregar la nueva región al final del bloque
-	// current = new_region;
-	// return new_region;
 	return NULL;
 }
 
 // crea una nueva region que ocupa todo el bloque
 struct region *
-initialize_region(struct region *nueva_region, struct block *nuevo_bloque)
+initialize_region(struct region *nueva_region)
 {
-	nueva_region = (struct region *) nuevo_bloque->first_region;
-	nueva_region->free = false;
+	nueva_region = (struct region *) first_block->first_region;
+	nueva_region->free = true;
+	nueva_region->id = constante;
+	printfmt("Voy a inicializar una region con id: %d\n",nueva_region->id);
 	nueva_region->size =
-	        nuevo_bloque->size - sizeof(*nuevo_bloque) -
-	        sizeof(*(nuevo_bloque->first_region));
-	nueva_region->next = NULL;
-	nuevo_bloque->first_region = nueva_region;
-	return nueva_region;
+	        first_block->size - sizeof(*first_block) -
+	        sizeof(*(first_block->first_region));
+	constante = constante + 1;    
+    return nueva_region;
 }
 
-struct bloque *initialize_block(struct block*nuevo_bloque) {
+void *initialize_block() {
 	void *memoria = 
 				mmap(NULL,  
 	             BLOCK_SIZE,
@@ -196,7 +169,7 @@ struct bloque *initialize_block(struct block*nuevo_bloque) {
 	             0);
 	if (memoria == MAP_FAILED)
 		return NULL;
-	nuevo_bloque = (struct block*) memoria;  
+	struct block*nuevo_bloque = (struct block*) memoria;  
 	
 	//nuevo_bloque->first_region = (struct region *) memoria + sizeof(*nuevo_bloque); 
 	//establece la posición inicial de la primera región dentro del bloque de memoria recién inicializado.
@@ -204,10 +177,8 @@ struct bloque *initialize_block(struct block*nuevo_bloque) {
 	nuevo_bloque->first_region = (struct region *) memoria + sizeof(*nuevo_bloque);  
 	nuevo_bloque->size = BLOCK_SIZE;
 
-	if (!first_block)
-			first_block = nuevo_bloque;
+	first_block = nuevo_bloque;
 	
-	return nuevo_bloque;
 }
 
 void *
@@ -218,23 +189,35 @@ malloc(size_t size)
 	amount_of_mallocs++;
 	requested_memory += size;
 	
-	//inicializo el bloque
-	struct block *nuevo_bloque = first_block;
-	if(nuevo_bloque==NULL){
-		nuevo_bloque = initialize_block(NULL);
+	// //inicializo el bloque
+	// struct block *nuevo_bloque = first_block;
+	// if(nuevo_bloque==NULL){
+	// 	nuevo_bloque = initialize_block(NULL);
+	// }
+
+	
+	// //Encuentro la primer region que este libre dentro del bloque
+	// next = first_fit(size, nuevo_bloque->first_region);
+	// if(next){
+	// 	return REGION2PTR(next);
+	// }
+
+	// //En caso contrario, inicializo una region.
+	// next = initialize_region(next, nuevo_bloque);
+	// if (!next) {
+	// 	return NULL;
+	// }
+	
+	if(!first_block){
+		initialize_block();
 	}
 	
-	//Encuentro la primer region que este libre dentro del bloque
-	next = first_fit(size, nuevo_bloque->first_region);
-	if(next){
-		return REGION2PTR(next);
+	next = first_fit(size);
+	if(!next){
+		next = initialize_region(next);
+		next = first_fit(size);
 	}
 
-	//En caso contrario, inicializo una region.
-	next = initialize_region(next, nuevo_bloque);
-	if (!next) {
-		return NULL;
-	}
 	return REGION2PTR(next);
 }
 
