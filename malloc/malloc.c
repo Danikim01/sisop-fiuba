@@ -1,34 +1,26 @@
 #define _DEFAULT_SOURCE
+#define FIRST_FIT  // TODO: Comment it, to run one or the other just use flags
+//#define BETS_FIT
 
 #include <assert.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/mman.h>
 
 #include "malloc.h"
 #include "printfmt.h"
-#include <sys/mman.h>
 
-#define MIN_SIZE 256
 #define ALIGN4(s) (((((s) -1) >> 2) << 2) + 4)
 #define REGION2PTR(r) ((r) + 1)
 #define PTR2REGION(ptr) ((struct region *) (ptr) -1)
 
-#define BLOCK_SIZE (16 * 1024)
+#define MIN_BLOCK_SIZE 16384  //= 16 Kib
 
-struct region {
-	bool free;
-	size_t size;
-	struct region *next;
-};
-
-struct block {
-	size_t size;
-	struct region *first_region;
-};
-
-struct block *first_block = NULL;
 struct region *region_free_list = NULL;
+
+//region1 -> region2 -> region3 
+
 int amount_of_mallocs = 0;
 int amount_of_frees = 0;
 int requested_memory = 0;
@@ -39,125 +31,126 @@ int requested_memory = 0;
 static struct region *
 find_free_region(size_t size)
 {
-	struct region *next = region_free_list;
+	struct region *next = region_free_list;  // Should never be NULL
 
 #ifdef FIRST_FIT
-	// Your code here for "first fit"
-	while (next != NULL) {
-		if (next->size >= size && free) {
+
+	struct region *prev = NULL;
+	while (next) {
+		if (next->size >= size && next->free == true) {
+			if (prev != NULL) {
+				next->free =
+				        false;  //-> if the implementation uses the free field
+				// prev->next = next->next; // A->B->C => first_fit = B => A->C (A->next = B->next)
+			} else {
+				next->free =
+				        false;  //-> if the implementation uses the free field
+				// region_free_list = next->next; //Actualize first node of the free list
+			}
 			return next;
 		}
+		prev = next;
 		next = next->next;
 	}
 
-	return NULL;
 #endif
 
 #ifdef BEST_FIT
 	// Your code here for "best fit"
 #endif
 
+	// If you get to the end of the free list then you couldn't find the region you needed then
+	// next = then so this is equivalent to return NULL
 	return next;
 }
 
-static struct region *
-first_fit(size_t size)
-{
-	if (!first_block) {
-		return NULL;
-	}
-	struct region *current = first_block->first_region;
-	struct region *aux = first_block->first_region;
-	while(aux){
-		printfmt("La region tiene tamaño %d\n",aux->size);
-		aux = aux->next;
-	}
 
-	while (current) {
-		if (current->free && current->size >= size) {
-			// Me fijo si puedo hacer el splitting
-			if (current->size >=
-			    size + MIN_SIZE + sizeof(struct region)) {
-				printfmt("Hago el splitting\n");
-				struct region *new =
-				        (struct region *) ((char *) current + size +
-				                           sizeof(struct region));
-				new->free = true;
-				new->size =
-				        current->size - size -
-				        sizeof(struct region);  // resto el header de la region
-				current->free = false;
-				current->size = size;
-				current->next = new;
-
-			} else {
-				current->free = false;
-			}
-			return current;
+void
+actualize_free_region_list(struct region *new_region)
+{  // If first region is not initialized for amount of mallocs = 0 then
+	// this code should add if act == NULL: region_free_list = new_region
+	struct region *act = region_free_list;
+	struct region *prev = NULL;
+	while (act != NULL) {
+		prev = act;
+		act = act->next;
+		if (act == NULL) {
+			prev->next = new_region;
 		}
-		current = current->next;
 	}
-	return NULL;
 }
 
-// crea una nueva region que ocupa todo el bloque
-struct region *
-initialize_region(struct region *nueva_region)
-{
-	nueva_region = (struct region *) first_block->first_region;
-	nueva_region->free = true;
-	nueva_region->size =
-	        first_block->size -
-	        sizeof(*first_block) - sizeof(*(first_block->first_region));  // resto el header del bloque con el header de la region
-	//printfmt("El tamaño de la region es %d\n", nueva_region->size);
-	//printfmt("El tamaño del bloque es %d\n", first_block->size);
-	return nueva_region;
-}
 
-void *
-initialize_block()
-{
-	void *memoria = mmap(NULL,
-	                     BLOCK_SIZE,
-	                     PROT_READ | PROT_WRITE,
-	                     MAP_PRIVATE | MAP_ANONYMOUS,
-	                     -1,
-	                     0);
-	if (memoria == MAP_FAILED)
+static struct region *
+grow_heap(size_t size)
+{  // If (no hay lo q quiere): crea un bloque del tam que quiere
+	struct region *new_region = mmap(NULL,
+	                                 size,
+	                                 PROT_READ | PROT_WRITE,
+	                                 MAP_PRIVATE | MAP_ANONYMOUS,
+	                                 -1,
+	                                 0);
+
+	if (new_region == MAP_FAILED)
 		return NULL;
-	struct block *nuevo_bloque = (struct block *) memoria;
 
-	// nuevo_bloque->first_region = (struct region *) memoria +
-	// sizeof(*nuevo_bloque); establece la posición inicial de la primera
-	// región dentro del bloque de memoria recién inicializado.
+	new_region->free = true;
+	new_region->next = NULL;
+	new_region->size = size - sizeof(struct region);
+	if (new_region->size <= 0)  // Shoudn't happen, but just in case
+		return NULL;
 
-	nuevo_bloque->first_region =
-	        (struct region *) memoria + sizeof(*nuevo_bloque);
-	nuevo_bloque->size = BLOCK_SIZE;
+	actualize_free_region_list(
+	        new_region);  // If free_region_list = NULL this does nothing
 
-	first_block = nuevo_bloque;
+	return new_region;
 }
+
+
+static struct region *
+split_free_regions(struct region *region_to_split, size_t size)
+{
+	// if region_to_split->size > size: crear region de tam size
+	// actualizar la free list (region to split->size = new_size)
+	// retornar region del tam q quiero
+}
+
+
+/// Public API of malloc library ///
 
 void *
 malloc(size_t size)
 {
 	struct region *next;
+
+	// aligns to multiple of 4 bytes
 	size = ALIGN4(size);
+
+	if (amount_of_mallocs == 0) {
+		// printfmt("ENTRO\n");
+		// If no first block, we create a bloque of min
+		// size (16kib)
+		region_free_list = grow_heap(MIN_BLOCK_SIZE);
+	}
+
+	// updates statistics
 	amount_of_mallocs++;
 	requested_memory += size;
 
-	// Si no hay un bloque, lo tengo que inicializar
-	if (!first_block) {
-		initialize_block();
-	}
+	next = find_free_region(size);
 
-	next = first_fit(size);
-	// Si no hay una region disponible inicializo una region que ocupa todo el bloque
 	if (!next) {
-		next = initialize_region(next);
-		next = first_fit(size);
+		// next = grow_heap(size);
+		return NULL;  // Primera parte
 	}
 
+	// Your code here
+	//
+	// hint: maybe split free regions?
+
+	// next = spilt_free_regions();
+
+	next->free = false;  // Before returning the region, mark it as not free
 	return REGION2PTR(next);
 }
 
@@ -168,48 +161,13 @@ free(void *ptr)
 	amount_of_frees++;
 
 	struct region *curr = PTR2REGION(ptr);
-	assert(curr->free == 0);
+	assert(curr->free == false);
 
 	curr->free = true;
 
-	// Buscar la región anterior y la siguiente
-    struct region *anterior = NULL;
-    struct region *siguiente = curr->next;
-    struct region *actual = first_block->first_region;
-
-	
-	//hago que anterior apunte a la region anterior a la que se va a liberar
-	while (actual && actual < curr) {
-        anterior = actual;
-        actual = actual->next;
-    }
-
-	//Si la region anterior a curr esta libre hago coalescing
-	if (anterior && (anterior->free==true)) {
-		printfmt("La region anterior a curr esta libre");
-		printfmt("Junto la region con size %d y size %d\n",anterior->size,curr->size);
-        // Coalescing con la región anterior a curr
-        anterior->size += curr->size + sizeof(struct region);
-        anterior->next = siguiente;
-        curr = anterior; //hago que curr apunte a la region juntada.
-    }
-
-
-	if (siguiente && siguiente->free) {
-		printfmt("La region siguiente a curr esta libre");
-		printfmt("Junto la region con size %d y size %d\n",siguiente->size,curr->size);
-        // Coalescing con la región siguiente a curr
-        curr->size += siguiente->size + sizeof(struct region);
-        curr->next = siguiente->next;
-    }
-
-	// Chequear si la región actual es la única región en el bloque
-	if (curr == first_block->first_region && curr->next == NULL) {
-		// Llamar a munmap() en el bloque completo
-		munmap((void*) first_block, first_block->size);
-		first_block = NULL;
-	}
-
+	// Your code here
+	//
+	// hint: maybe coalesce regions?
 }
 
 void *

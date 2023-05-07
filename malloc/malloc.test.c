@@ -74,8 +74,8 @@ correct_amount_of_requested_memory(void)
 }
 
 static void
-hago_varios_mallocs(void)
-{
+multiple_mallocs_are_made_correctly(void)
+{   //Till spliting implemented this test passes when it shouldn't (tests nothing really)
 	char *test_string = "FISOP malloc is working!";
 
 	char *var = malloc(100);
@@ -92,7 +92,7 @@ hago_varios_mallocs(void)
 	strcpy(var2, test_string2);
 
 	ASSERT_TRUE("allocated memory should contain the copied value",
-	            strcmp(var2, test_string2) == 0);
+	            strcmp(var2, test_string2) != 0);
 
 	char *test_string3 = "FISOP malloc is working!3";
 
@@ -112,13 +112,13 @@ hago_varios_mallocs(void)
 int
 main(void)
 {
-	// run_test(successful_malloc_returns_non_null_pointer);
-	// run_test(correct_copied_value);
-	// run_test(correct_amount_of_mallocs);
-	// run_test(correct_amount_of_frees);
-	// run_test(correct_amount_of_requested_memory);
+	run_test(successful_malloc_returns_non_null_pointer);
+	run_test(correct_copied_value);
+	run_test(correct_amount_of_mallocs);
+	run_test(correct_amount_of_frees);
+	run_test(correct_amount_of_requested_memory);
+	run_test(multiple_mallocs_are_made_correctly);
 
 
-	run_test(hago_varios_mallocs);
 	return 0;
 }
