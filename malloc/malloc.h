@@ -11,7 +11,7 @@ struct malloc_stats {
 
 
 struct region {
-	bool free; //This aproach is aparently better than the one in the given text
+	bool free;  // This aproach is aparently better than the one in the given text
 	size_t size;  // The actual regions size, does not include the header
 	struct region *next;
 };

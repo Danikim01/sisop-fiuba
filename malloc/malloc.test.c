@@ -75,7 +75,7 @@ correct_amount_of_requested_memory(void)
 
 static void
 multiple_mallocs_are_made_correctly(void)
-{   //Till spliting implemented this test passes when it shouldn't (tests nothing really)
+{  // Till spliting implemented this test passes when it shouldn't (tests nothing really)
 	char *test_string = "FISOP malloc is working!";
 
 	char *var = malloc(100);

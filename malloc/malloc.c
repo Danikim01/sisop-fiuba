@@ -19,7 +19,7 @@
 
 struct region *region_free_list = NULL;
 
-//region1 -> region2 -> region3 
+// region1 -> region2 -> region3
 
 int amount_of_mallocs = 0;
 int amount_of_frees = 0;
