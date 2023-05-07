@@ -67,9 +67,13 @@ first_fit(size_t size)
 		return NULL;
 	}
 	struct region *current = first_block->first_region;
-	int i = 0;
+	struct region *aux = first_block->first_region;
+	while(aux){
+		printfmt("La region tiene tamaño %d\n",aux->size);
+		aux = aux->next;
+	}
+
 	while (current) {
-		printfmt("Esta es la iteracion numero %d\n", i);
 		if (current->free && current->size >= size) {
 			// Me fijo si puedo hacer el splitting
 			if (current->size >=
@@ -91,7 +95,6 @@ first_fit(size_t size)
 			}
 			return current;
 		}
-		i++;
 		current = current->next;
 	}
 	return NULL;
@@ -106,8 +109,8 @@ initialize_region(struct region *nueva_region)
 	nueva_region->size =
 	        first_block->size -
 	        sizeof(*first_block) - sizeof(*(first_block->first_region));  // resto el header del bloque con el header de la region
-	printfmt("El tamaño de la region es %d\n", nueva_region->size);
-	printfmt("El tamaño del bloque es %d\n", first_block->size);
+	//printfmt("El tamaño de la region es %d\n", nueva_region->size);
+	//printfmt("El tamaño del bloque es %d\n", first_block->size);
 	return nueva_region;
 }
 
@@ -169,9 +172,44 @@ free(void *ptr)
 
 	curr->free = true;
 
-	// Your code here
-	//
-	// hint: maybe coalesce regions?
+	// Buscar la región anterior y la siguiente
+    struct region *anterior = NULL;
+    struct region *siguiente = curr->next;
+    struct region *actual = first_block->first_region;
+
+	
+	//hago que anterior apunte a la region anterior a la que se va a liberar
+	while (actual && actual < curr) {
+        anterior = actual;
+        actual = actual->next;
+    }
+
+	//Si la region anterior a curr esta libre hago coalescing
+	if (anterior && (anterior->free==true)) {
+		printfmt("La region anterior a curr esta libre");
+		printfmt("Junto la region con size %d y size %d\n",anterior->size,curr->size);
+        // Coalescing con la región anterior a curr
+        anterior->size += curr->size + sizeof(struct region);
+        anterior->next = siguiente;
+        curr = anterior; //hago que curr apunte a la region juntada.
+    }
+
+
+	if (siguiente && siguiente->free) {
+		printfmt("La region siguiente a curr esta libre");
+		printfmt("Junto la region con size %d y size %d\n",siguiente->size,curr->size);
+        // Coalescing con la región siguiente a curr
+        curr->size += siguiente->size + sizeof(struct region);
+        curr->next = siguiente->next;
+    }
+
+	// Chequear si la región actual es la única región en el bloque
+	if (curr == first_block->first_region && curr->next == NULL) {
+		// Llamar a munmap() en el bloque completo
+		munmap((void*) first_block, first_block->size);
+		first_block = NULL;
+	}
+
 }
 
 void *

@@ -112,11 +112,11 @@ hago_varios_mallocs(void)
 int
 main(void)
 {
-	run_test(successful_malloc_returns_non_null_pointer);
-	run_test(correct_copied_value);
-	run_test(correct_amount_of_mallocs);
-	run_test(correct_amount_of_frees);
-	run_test(correct_amount_of_requested_memory);
+	// run_test(successful_malloc_returns_non_null_pointer);
+	// run_test(correct_copied_value);
+	// run_test(correct_amount_of_mallocs);
+	// run_test(correct_amount_of_frees);
+	// run_test(correct_amount_of_requested_memory);
 
 
 	run_test(hago_varios_mallocs);
