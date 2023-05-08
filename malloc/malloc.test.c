@@ -109,6 +109,18 @@ multiple_mallocs_are_made_correctly(void)
 	free(var3);
 }
 
+
+// static void prueba(void) {
+// 	char *var = malloc(100);
+
+// 	ASSERT_TRUE("FIN PRIMER MALLOC", true == true);
+
+// 	char *var2 = malloc(200);
+
+// 	ASSERT_TRUE("FIN SEGUNDO MALLOC", true == true);
+// }
+
+
 int
 main(void)
 {
@@ -118,6 +130,8 @@ main(void)
 	run_test(correct_amount_of_frees);
 	run_test(correct_amount_of_requested_memory);
 	run_test(multiple_mallocs_are_made_correctly);
+	
+	// run_test(prueba);
 
 
 	return 0;

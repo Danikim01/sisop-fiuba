@@ -19,8 +19,6 @@
 
 struct region *region_free_list = NULL;
 
-// region1 -> region2 -> region3
-
 int amount_of_mallocs = 0;
 int amount_of_frees = 0;
 int requested_memory = 0;
@@ -38,15 +36,13 @@ find_free_region(size_t size)
 	struct region *prev = NULL;
 	while (next) {
 		if (next->size >= size && next->free == true) {
-			if (prev != NULL) {
-				next->free =
-				        false;  //-> if the implementation uses the free field
-				// prev->next = next->next; // A->B->C => first_fit = B => A->C (A->next = B->next)
-			} else {
-				next->free =
-				        false;  //-> if the implementation uses the free field
-				// region_free_list = next->next; //Actualize first node of the free list
-			}
+			next->free = false;
+			// if (prev != NULL) {
+			// 	// prev->next = next->next; // A->B->C =>
+			// first_fit = B => A->C (A->next = B->next) } else {
+			// 	// region_free_list = next->next; //Actualize
+			// first node of the free list
+			// }
 			return next;
 		}
 		prev = next;
@@ -106,17 +102,40 @@ grow_heap(size_t size)
 	return new_region;
 }
 
-
 static struct region *
-split_free_regions(struct region *region_to_split, size_t size)
+split_free_regions(struct region *region_to_split, size_t desired_size)
 {
-	// if region_to_split->size > size: crear region de tam size
-	// actualizar la free list (region to split->size = new_size)
-	// retornar region del tam q quiero
+	// Check if the region_to_split can be split
+	if (region_to_split->size > desired_size) {
+		size_t prev_region_size = region_to_split->size;
+
+		// Update the size of the region to split
+		region_to_split->size = desired_size;
+
+		// Obtain the new header position
+		// Move to the region pointer
+		void *ptr_to_region = REGION2PTR(region_to_split);
+		// Move the desired amount of bytes into the region, plus the
+		// size of a struct region (for the new header)
+		void *ptr_to_new_header = (char *) ptr_to_region + desired_size;
+		struct region *new_header = (struct region *) ptr_to_new_header;
+
+		// Initialize the new header with the remaining size, and update the links in the free list
+		new_header->size =
+		        prev_region_size - desired_size - sizeof(struct region);
+		new_header->next = region_to_split->next;
+		new_header->free = true;
+
+		region_to_split->next = new_header;
+	}
+
+	// If the region can't be split, just return the original region
+	return region_to_split;
 }
 
 
 /// Public API of malloc library ///
+
 
 void *
 malloc(size_t size)
@@ -127,7 +146,6 @@ malloc(size_t size)
 	size = ALIGN4(size);
 
 	if (amount_of_mallocs == 0) {
-		// printfmt("ENTRO\n");
 		// If no first block, we create a bloque of min
 		// size (16kib)
 		region_free_list = grow_heap(MIN_BLOCK_SIZE);
@@ -139,6 +157,8 @@ malloc(size_t size)
 
 	next = find_free_region(size);
 
+	//printfmt("Tam antes de splitear: %d\n", next->size + sizeof(struct region));
+
 	if (!next) {
 		// next = grow_heap(size);
 		return NULL;  // Primera parte
@@ -148,7 +168,10 @@ malloc(size_t size)
 	//
 	// hint: maybe split free regions?
 
-	// next = spilt_free_regions();
+	next = split_free_regions(next, size);
+
+	printfmt("Tam de la region a retornar: %d\n", next->size + sizeof(struct region));
+	printfmt("Tam de la region que quedo: %d\n", next->next->size + sizeof(struct region));
 
 	next->free = false;  // Before returning the region, mark it as not free
 	return REGION2PTR(next);

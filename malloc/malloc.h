@@ -10,7 +10,7 @@ struct malloc_stats {
 };
 
 
-struct region {
+struct region { //Ocupies 24 bytes in memory
 	bool free;  // This aproach is aparently better than the one in the given text
 	size_t size;  // The actual regions size, does not include the header
 	struct region *next;
