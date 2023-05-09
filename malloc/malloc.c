@@ -11,11 +11,14 @@
 #include "malloc.h"
 #include "printfmt.h"
 
-#define ALIGN4(s) (((((s) -1) >> 2) << 2) + 4)
+#define ALIGN4(s) (((((s) -1) >> 2) << 2) + 4) //Get the nearset multiple of 4 of s, this just rounds up
 #define REGION2PTR(r) ((r) + 1) 
 #define PTR2REGION(ptr) ((struct region *) (ptr) -1)
 
 #define MIN_BLOCK_SIZE 16384  //in bytes === 16 Kib
+#define MEDIUM_BLOCK_SIZE 1048576 //in bytes === 1Mib
+#define LARGE_BLOCK_SIZE 33554432  //in bytes === 32Mib
+
 #define MIN_SIZE_TO_RETURN 256 //in bytes, defined in the tp
 
 struct region *region_free_list = NULL;
@@ -42,12 +45,7 @@ find_free_region(size_t size)
 	while (next) {
 		if (next->size >= size && next->free == true) {
 			next->free = false;
-			// if (prev != NULL) {
-			// 	// prev->next = next->next; // A->B->C =>
-			// first_fit = B => A->C (A->next = B->next) } else {
-			// 	// region_free_list = next->next; //Actualize
-			// first node of the free list
-			// }
+
 			return next;
 		}
 		prev = next;
@@ -113,7 +111,7 @@ split_free_regions(struct region *region_to_split, size_t desired_size)
 	//TODO: Check if it makes sense to split if the desired size is big compared to
 	//the region. If if have 100 bytes and they ask me for 99, does it make sense
 	//to split? 
-	
+
 	// Check if the region_to_split can be split
 	if (region_to_split->size > desired_size) {
 		size_t prev_region_size = region_to_split->size;
@@ -196,23 +194,45 @@ void print_all_free_list_elements() {
 }
 
 
+size_t determine_block_size(size_t size) {
+	size_t block_size = 0;
+	if (size <= MIN_BLOCK_SIZE) {
+		block_size = MIN_BLOCK_SIZE;
+	} else if (size <= MEDIUM_BLOCK_SIZE) {
+		block_size = MEDIUM_BLOCK_SIZE;
+	} else {
+		block_size = LARGE_BLOCK_SIZE;
+	}
+
+	return block_size;
+}
+
+
 /// Public API of malloc library ///
 
 
 void *
 malloc(size_t size)
 {
-	struct region *next;
+	//TODO: Check malloc result in this case
+	if (size <= 0) return NULL;
+
+	struct region *next = NULL;
 
 	// aligns to multiple of 4 bytes
 	size = ALIGN4(size);
 
-	if (size < MIN_SIZE_TO_RETURN) size = MIN_SIZE_TO_RETURN; 
+	//TODO: Check malloc result in this case
+	if (size > LARGE_BLOCK_SIZE) return NULL; 
 
+	//if the size that's being asked is lower than a minimum, then return the minimum
+	if (size < MIN_SIZE_TO_RETURN) size = MIN_SIZE_TO_RETURN;  
+
+	size_t block_size = determine_block_size(size);
 	if (amount_of_mallocs == 0) {
 		// If no first block, we create a bloque of min
 		// size (16kib)
-		region_free_list = grow_heap(MIN_BLOCK_SIZE);
+		region_free_list = grow_heap(block_size);
 	}
 	// updates statistics
 	amount_of_mallocs++;
