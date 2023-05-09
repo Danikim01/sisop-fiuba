@@ -15,7 +15,8 @@
 #define REGION2PTR(r) ((r) + 1) 
 #define PTR2REGION(ptr) ((struct region *) (ptr) -1)
 
-#define MIN_BLOCK_SIZE 16384  //= 16 Kib
+#define MIN_BLOCK_SIZE 16384  //in bytes === 16 Kib
+#define MIN_SIZE_TO_RETURN 256 //in bytes, defined in the tp
 
 struct region *region_free_list = NULL;
 
@@ -109,6 +110,10 @@ grow_heap(size_t size)
 static struct region *
 split_free_regions(struct region *region_to_split, size_t desired_size)
 {
+	//TODO: Check if it makes sense to split if the desired size is big compared to
+	//the region. If if have 100 bytes and they ask me for 99, does it make sense
+	//to split? 
+	
 	// Check if the region_to_split can be split
 	if (region_to_split->size > desired_size) {
 		size_t prev_region_size = region_to_split->size;
@@ -201,6 +206,8 @@ malloc(size_t size)
 
 	// aligns to multiple of 4 bytes
 	size = ALIGN4(size);
+
+	if (size < MIN_SIZE_TO_RETURN) size = MIN_SIZE_TO_RETURN; 
 
 	if (amount_of_mallocs == 0) {
 		// If no first block, we create a bloque of min
