@@ -112,7 +112,7 @@ split_free_regions(struct region *region_to_split, size_t desired_size)
 		// Update the size of the region to split
 		region_to_split->size = desired_size;
 
-		// Obtain the new header position
+		// Obtain the new header position:
 		// Move to the region pointer
 		void *ptr_to_region = REGION2PTR(region_to_split);
 		// Move the desired amount of bytes into the region, plus the
@@ -157,7 +157,7 @@ malloc(size_t size)
 
 	next = find_free_region(size);
 
-	//printfmt("Tam antes de splitear: %d\n", next->size + sizeof(struct region));
+	// printfmt("Tam antes de splitear: %d\n", next->size + sizeof(struct region));
 
 	if (!next) {
 		// next = grow_heap(size);
@@ -170,8 +170,9 @@ malloc(size_t size)
 
 	next = split_free_regions(next, size);
 
-	printfmt("Tam de la region a retornar: %d\n", next->size + sizeof(struct region));
-	printfmt("Tam de la region que quedo: %d\n", next->next->size + sizeof(struct region));
+	// printfmt("Tam de la region a retornar: %d\n", next->size +
+	// sizeof(struct region)); printfmt("Tam de la region que quedo: %d\n",
+	// next->next->size + sizeof(struct region));
 
 	next->free = false;  // Before returning the region, mark it as not free
 	return REGION2PTR(next);

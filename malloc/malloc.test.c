@@ -92,7 +92,7 @@ multiple_mallocs_are_made_correctly(void)
 	strcpy(var2, test_string2);
 
 	ASSERT_TRUE("allocated memory should contain the copied value",
-	            strcmp(var2, test_string2) != 0);
+	            strcmp(var2, test_string2) == 0);
 
 	char *test_string3 = "FISOP malloc is working!3";
 
@@ -130,7 +130,7 @@ main(void)
 	run_test(correct_amount_of_frees);
 	run_test(correct_amount_of_requested_memory);
 	run_test(multiple_mallocs_are_made_correctly);
-	
+
 	// run_test(prueba);
 
 
