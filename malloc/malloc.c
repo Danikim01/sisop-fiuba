@@ -12,12 +12,16 @@
 #include "printfmt.h"
 
 #define ALIGN4(s) (((((s) -1) >> 2) << 2) + 4)
-#define REGION2PTR(r) ((r) + 1)
+#define REGION2PTR(r) ((r) + 1) 
 #define PTR2REGION(ptr) ((struct region *) (ptr) -1)
 
 #define MIN_BLOCK_SIZE 16384  //= 16 Kib
 
 struct region *region_free_list = NULL;
+
+// |header | region1 | header | region2 |
+// |          free               !free  |
+
 
 int amount_of_mallocs = 0;
 int amount_of_frees = 0;
@@ -134,6 +138,59 @@ split_free_regions(struct region *region_to_split, size_t desired_size)
 }
 
 
+void coalesce_regions(struct region* curr) {
+	struct region* prev = NULL;
+	struct region* act = region_free_list;
+	struct region* sig = region_free_list->next;
+
+	while (act != NULL) {
+		if (act == curr) { //Found my current header
+			if (sig != NULL) { // Caso curr = last element
+				if (sig->free == true) {
+					act->size = act->size + sizeof(struct region) + sig->size;
+					act->next = sig->next; //Actualize the linked list
+				}
+			}
+
+			if (prev != NULL) { //Caso curr = first element
+				if (prev->free == true) {
+					prev->size = prev->size + sizeof(struct region) + act->size;
+					prev->next = act->next; //Actualize the linked list
+					if (act == region_free_list) { // Update head if necessary
+                        region_free_list = prev;
+                    }
+				}
+			}
+		}
+
+		prev = act;
+		act = act->next; 
+		if (act != NULL) {
+			sig = act->next; //To avoid getting a seg fault
+		} else {
+			sig = NULL;
+		}
+	}
+}
+
+
+//TODO: When finished, delete it
+void print_all_free_list_elements() {
+	//printfmt("#########\nFREE:\n##########");
+	//printfmt("#########\nMALLOC:\n##########");
+	struct region* act = region_free_list;
+	int contador = 0;
+	while (act != NULL){ 
+		printfmt("\n------REGION ACTUAL NUMERO: %d------\n", contador);
+		printfmt("TAM: %d\n", act->size + sizeof(struct region));
+		printfmt("LIBRE: %d\n", act->free);
+
+		act = act->next;
+		contador++;
+	}
+}
+
+
 /// Public API of malloc library ///
 
 
@@ -150,29 +207,18 @@ malloc(size_t size)
 		// size (16kib)
 		region_free_list = grow_heap(MIN_BLOCK_SIZE);
 	}
-
 	// updates statistics
 	amount_of_mallocs++;
 	requested_memory += size;
 
 	next = find_free_region(size);
 
-	// printfmt("Tam antes de splitear: %d\n", next->size + sizeof(struct region));
-
 	if (!next) {
 		// next = grow_heap(size);
 		return NULL;  // Primera parte
 	}
 
-	// Your code here
-	//
-	// hint: maybe split free regions?
-
 	next = split_free_regions(next, size);
-
-	// printfmt("Tam de la region a retornar: %d\n", next->size +
-	// sizeof(struct region)); printfmt("Tam de la region que quedo: %d\n",
-	// next->next->size + sizeof(struct region));
 
 	next->free = false;  // Before returning the region, mark it as not free
 	return REGION2PTR(next);
@@ -184,14 +230,12 @@ free(void *ptr)
 	// updates statistics
 	amount_of_frees++;
 
-	struct region *curr = PTR2REGION(ptr);
+	struct region *curr = PTR2REGION(ptr); 
 	assert(curr->free == false);
 
-	curr->free = true;
+	curr->free = true; 
 
-	// Your code here
-	//
-	// hint: maybe coalesce regions?
+	coalesce_regions(curr); 
 }
 
 void *
