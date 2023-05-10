@@ -69,8 +69,8 @@ correct_amount_of_requested_memory(void)
 
 	get_stats(&stats);
 
-	ASSERT_TRUE("amount of requested memory should be 100",
-	            stats.requested_memory == 100);
+	ASSERT_TRUE("amount of requested memory should be 256 bytes",
+	            stats.requested_memory == 256);
 }
 
 static void
@@ -124,11 +124,11 @@ multiple_mallocs_are_made_correctly(void)
 int
 main(void)
 {
-	// run_test(successful_malloc_returns_non_null_pointer);
-	// run_test(correct_copied_value);
-	// run_test(correct_amount_of_mallocs);
-	// run_test(correct_amount_of_frees);
-	// run_test(correct_amount_of_requested_memory);
+	run_test(successful_malloc_returns_non_null_pointer);
+	run_test(correct_copied_value);
+	run_test(correct_amount_of_mallocs);
+	run_test(correct_amount_of_frees);
+	run_test(correct_amount_of_requested_memory);
 	run_test(multiple_mallocs_are_made_correctly);
 
 	// run_test(prueba);

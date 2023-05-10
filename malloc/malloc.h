@@ -17,6 +17,13 @@ struct region {  // Ocupies 24 bytes in memory
 };
 
 
+struct block {
+	size_t size;  
+	struct region* first_region; 
+	struct block* next;
+};
+
+
 void *malloc(size_t size);
 
 void free(void *ptr);

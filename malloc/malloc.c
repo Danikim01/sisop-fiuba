@@ -15,7 +15,7 @@
 #define REGION2PTR(r) ((r) + 1) 
 #define PTR2REGION(ptr) ((struct region *) (ptr) -1)
 
-#define MIN_BLOCK_SIZE 16384  //in bytes === 16 Kib
+#define SMALL_BLOCK_SIZE 16384  //in bytes === 16 Kib
 #define MEDIUM_BLOCK_SIZE 1048576 //in bytes === 1Mib
 #define LARGE_BLOCK_SIZE 33554432  //in bytes === 32Mib
 
@@ -23,9 +23,35 @@
 
 struct region *region_free_list = NULL;
 
+struct block* small_size_block_list = NULL;
+struct block* medium_size_block_list = NULL;
+struct block* large_size_block_list = NULL; 
+
+// iterar_lista(struct block* lista_bloques)
+
+// wrapper_iterar_lista(struct block* lista_bloques)
+
+//struct block* block_list = NULL;  // medium < 1mib + 100bytes < large
+
+
+
+// struct block* block_list = NULL;
+
+// chico->chico->medio->medio->largo
+
+// meto medio_nuevo
+
+//chico->chico->medio_nuevo->medio->medio->largo
+
+
+//piden min > size -> busco en los min, medium o large
+
+//piden min < size < medium  -> busco en medium o large
+
+//piden medium < size < large -> busco en large
+
 // |header | region1 | header | region2 |
 // |          free               !free  |
-
 
 int amount_of_mallocs = 0;
 int amount_of_frees = 0;
@@ -196,8 +222,8 @@ void print_all_free_list_elements() {
 
 size_t determine_block_size(size_t size) {
 	size_t block_size = 0;
-	if (size <= MIN_BLOCK_SIZE) {
-		block_size = MIN_BLOCK_SIZE;
+	if (size <= SMALL_BLOCK_SIZE) {
+		block_size = SMALL_BLOCK_SIZE;
 	} else if (size <= MEDIUM_BLOCK_SIZE) {
 		block_size = MEDIUM_BLOCK_SIZE;
 	} else {
