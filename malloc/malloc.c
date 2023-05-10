@@ -33,8 +33,6 @@ struct block* large_size_block_list = NULL;
 
 //struct block* block_list = NULL;  // medium < 1mib + 100bytes < large
 
-
-
 // struct block* block_list = NULL;
 
 // chico->chico->medio->medio->largo
