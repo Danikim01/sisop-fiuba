@@ -21,35 +21,9 @@
 
 #define MIN_SIZE_TO_RETURN 256 //in bytes, defined in the tp
 
-struct region *region_free_list = NULL;
-
 struct block* small_size_block_list = NULL;
 struct block* medium_size_block_list = NULL;
 struct block* large_size_block_list = NULL; 
-
-// iterar_lista(struct block* lista_bloques)
-
-// wrapper_iterar_lista(struct block* lista_bloques)
-
-//struct block* block_list = NULL;  // medium < 1mib + 100bytes < large
-
-// struct block* block_list = NULL;
-
-// chico->chico->medio->medio->largo
-
-// meto medio_nuevo
-
-//chico->chico->medio_nuevo->medio->medio->largo
-
-
-//piden min > size -> busco en los min, medium o large
-
-//piden min < size < medium  -> busco en medium o large
-
-//piden medium < size < large -> busco en large
-
-// |header | region1 | header | region2 |
-// |          free               !free  |
 
 int amount_of_mallocs = 0;
 int amount_of_frees = 0;
@@ -58,22 +32,61 @@ int requested_memory = 0;
 // finds the next free region
 // that holds the requested size
 //
+
+//Finds the first region within a block that can hold at least size bytes
+static struct region* region_first_fist(struct block* block, size_t size) {
+	struct region* act = block->first_region;
+	while (act != NULL) {
+		if (act->size >= size && act->free == true) {
+			act->free = false;
+
+			return act;
+		}
+		act = act->next;
+	}
+
+	return NULL;
+}
+
+
+static struct region* first_fit(struct block* block_list, size_t size) {
+	struct region* first_fitting_region = NULL;
+	while (block_list != NULL) {
+		first_fitting_region = region_first_fist(block_list, size);
+
+		if (first_fitting_region != NULL) return first_fitting_region;
+
+		block_list = block_list->next;
+	}
+
+	return NULL;
+}
+
+
 static struct region *
 find_free_region(size_t size)
 {
-	struct region *next = region_free_list;  // Should never be NULL
+	struct region* fitting_region = NULL;  // Should never be NULL
 
 #ifdef FIRST_FIT
 
-	struct region *prev = NULL;
-	while (next) {
-		if (next->size >= size && next->free == true) {
-			next->free = false;
+	if (size <= SMALL_BLOCK_SIZE) {
+		fitting_region = first_fit(small_size_block_list, size);
+		if (fitting_region != NULL) return fitting_region;
 
-			return next;
-		}
-		prev = next;
-		next = next->next;
+		fitting_region = first_fit(medium_size_block_list, size);
+		if (fitting_region != NULL) return fitting_region;
+
+		fitting_region = first_fit(large_size_block_list, size);
+	}
+	else if (size <= MEDIUM_BLOCK_SIZE) {
+		fitting_region = first_fit(medium_size_block_list, size);
+		if (fitting_region != NULL) return fitting_region;
+
+		fitting_region = first_fit(large_size_block_list, size);
+	} 
+	else {
+		fitting_region = first_fit(large_size_block_list, size);
 	}
 
 #endif
@@ -84,50 +97,84 @@ find_free_region(size_t size)
 
 	// If you get to the end of the free list then you couldn't find the region you needed then
 	// next = then so this is equivalent to return NULL
-	return next;
+	return fitting_region;
 }
 
 
-void
-actualize_free_region_list(struct region *new_region)
-{  // If first region is not initialized for amount of mallocs = 0 then
-	// this code should add if act == NULL: region_free_list = new_region
-	struct region *act = region_free_list;
-	struct region *prev = NULL;
-	while (act != NULL) {
-		prev = act;
-		act = act->next;
-		if (act == NULL) {
-			prev->next = new_region;
-		}
-	}
+// void
+// actualize_free_region_list(struct region *new_region)
+// {  // If first region is not initialized for amount of mallocs = 0 then
+// 	// this code should add if act == NULL: region_free_list = new_region
+// 	struct region *act = region_free_list;
+// 	struct region *prev = NULL;
+// 	while (act != NULL) {
+// 		prev = act;
+// 		act = act->next;
+// 		if (act == NULL) {
+// 			prev->next = new_region;
+// 		}
+// 	}
+// }
+
+
+void actualize_block_list(struct block* new_block, struct block** block_list) {	
+	if (block_list == NULL) block_list = new_block;
+
+	//The insertion is made in the beginning so this operation is O(1)
+	struct block* prev_first_block_in_list = *block_list;
+	*block_list = new_block;
+	new_block->next = prev_first_block_in_list;
 }
 
 
 static struct region *
-grow_heap(size_t size)
+grow_heap(size_t block_size)
 {  // If (no hay lo q quiere): crea un bloque del tam que quiere
-	struct region *new_region = mmap(NULL,
-	                                 size,
+
+	// |                                                 |
+	// | bloque  | header1 | region1 | header2 | region2 | ...
+
+	//TODO: Check if we should ask for block_size - sizeof(block) - sizeof(header) insted
+	struct block* new_block = mmap(NULL,
+	                                 block_size,
 	                                 PROT_READ | PROT_WRITE,
 	                                 MAP_PRIVATE | MAP_ANONYMOUS,
 	                                 -1,
 	                                 0);
 
-	if (new_region == MAP_FAILED)
+	if (new_block== MAP_FAILED)
+		return NULL;
+	// printfmt("#########\nFREE:\n##########");
+
+	new_block->next = NULL;
+	new_block->first_region = REGION2PTR(new_block); //The memory chunck starts where block ends
+
+	new_block->first_region->free = true;
+	new_block->first_region->next = NULL;
+	new_block->first_region->prev = NULL;
+	new_block->first_region->size = block_size - sizeof(struct region) - sizeof(struct block);
+	if (new_block->first_region->size <= 0) 
 		return NULL;
 
-	new_region->free = true;
-	new_region->next = NULL;
-	new_region->size = size - sizeof(struct region);
-	if (new_region->size <= 0)  // Shoudn't happen, but just in case
-		return NULL;
 
-	actualize_free_region_list(
-	        new_region);  // If free_region_list = NULL this does nothing
+	switch (block_size) {
+		case SMALL_BLOCK_SIZE:
+			actualize_block_list(new_block, &small_size_block_list);
 
-	return new_region;
+			break;
+		case MEDIUM_BLOCK_SIZE:
+			actualize_block_list(new_block, &medium_size_block_list);
+
+			break;
+		case LARGE_BLOCK_SIZE:
+			actualize_block_list(new_block, &large_size_block_list);
+
+			break;
+	}
+
+	return new_block->first_region;
 }
+
 
 static struct region *
 split_free_regions(struct region *region_to_split, size_t desired_size)
@@ -156,6 +203,7 @@ split_free_regions(struct region *region_to_split, size_t desired_size)
 		        prev_region_size - desired_size - sizeof(struct region);
 		new_header->next = region_to_split->next;
 		new_header->free = true;
+		new_header->prev = region_to_split;
 
 		region_to_split->next = new_header;
 	}
@@ -166,51 +214,45 @@ split_free_regions(struct region *region_to_split, size_t desired_size)
 
 
 void coalesce_regions(struct region* curr) {
-	struct region* prev = NULL;
-	struct region* act = region_free_list;
-	struct region* sig = region_free_list->next;
+	struct region* prev = curr->prev;
+	struct region* next = curr->next;
 
-	while (act != NULL) {
-		if (act == curr) { //Found my current header
-			if (sig != NULL) { // Caso curr = last element
-				if (sig->free == true) {
-					act->size = act->size + sizeof(struct region) + sig->size;
-					act->next = sig->next; //Actualize the linked list
-				}
-			}
-
-			if (prev != NULL) { //Caso curr = first element
-				if (prev->free == true) {
-					prev->size = prev->size + sizeof(struct region) + act->size;
-					prev->next = act->next; //Actualize the linked list
-					if (act == region_free_list) { // Update head if necessary
-                        region_free_list = prev;
-                    }
-				}
-			}
+	if (next != NULL) {
+		if (next->free == true) {
+			curr->size = curr->size +
+					    sizeof(struct region) +
+					    next->size;
+			curr->next = next->next;  // Actualize the linked list
 		}
+	}
 
-		prev = act;
-		act = act->next; 
-		if (act != NULL) {
-			sig = act->next; //To avoid getting a seg fault
-		} else {
-			sig = NULL;
+	if (prev != NULL) {
+		if (prev->free == true) {
+			prev->size = prev->size +
+					    sizeof(struct region) +
+					    curr->size;
+			prev->next = curr->next;  // Actualize the linked list
 		}
 	}
 }
 
 
 //TODO: When finished, delete it
-void print_all_free_list_elements() {
+void print_all_free_list_elements(struct block* list) {
 	//printfmt("#########\nFREE:\n##########");
 	//printfmt("#########\nMALLOC:\n##########");
-	struct region* act = region_free_list;
+	if (list == NULL) {
+		printfmt("\n##################ACA NO HABIA NADA################\n");
+		return;
+	}
+	struct region* act = list->first_region;
 	int contador = 0;
 	while (act != NULL){ 
 		printfmt("\n------REGION ACTUAL NUMERO: %d------\n", contador);
 		printfmt("TAM: %d\n", act->size + sizeof(struct region));
 		printfmt("LIBRE: %d\n", act->free);
+		printfmt("TAM DEL BLOCK: %d\n", sizeof(struct block));
+		printfmt("TAM DEL REGION: %d\n", sizeof(struct region));
 
 		act = act->next;
 		contador++;
@@ -231,6 +273,52 @@ size_t determine_block_size(size_t size) {
 	return block_size;
 }
 
+size_t validate_size(size_t size) {
+	// TODO: Check malloc result if it fails
+
+	// aligns to multiple of 4 bytes
+	size_t new_size = ALIGN4(size);
+
+	// TODO: Check malloc result in this case and if i have to have in consideration
+	//the header size
+	if (new_size > LARGE_BLOCK_SIZE)
+		return 0;
+
+	// if the size that's being asked is lower than a minimum, then return the minimum
+	if (new_size < MIN_SIZE_TO_RETURN)
+		new_size = MIN_SIZE_TO_RETURN;
+
+
+	return new_size;
+
+}
+
+//If this function fails it returns 0, otherwise 1
+// int free_empty_blocks(struct block** desired_block_list, size_t block_size) {
+// 	struct block* prev = NULL;
+// 	struct block* act = *desired_block_list;
+// 	while (act != NULL){
+// 		if (act->first_region->size + sizeof(struct block) + sizeof(struct region) == block_size) {
+// 			if (prev != NULL) prev->next = act->next; //Actualize the list
+// 			else *desired_block_list = act->next;
+
+// 			struct region* top_of_header_ptr = act->first_region - 1;
+// 			struct block* top_of_block_ptr = (struct block*) top_of_header_ptr;
+// 			top_of_block_ptr = top_of_block_ptr - 1;
+
+// 			void* munmap_ptr = (void*) top_of_block_ptr;
+
+// 			if (munmap(munmap_ptr, block_size) == -1) return 0;
+// 		} 
+// 		prev = act;
+// 		printfmt("PREV MATA\n");
+// 		act = act->next;
+// 		printfmt("ACT MATA\n");
+// 	}
+
+
+// 	return 1;
+// }
 
 /// Public API of malloc library ///
 
@@ -238,26 +326,11 @@ size_t determine_block_size(size_t size) {
 void *
 malloc(size_t size)
 {
-	//TODO: Check malloc result in this case
-	if (size <= 0) return NULL;
+	if (!(size = validate_size(size))) return NULL;
+	printfmt("\n##############MALLOC(%d)###########\n", size);
 
 	struct region *next = NULL;
 
-	// aligns to multiple of 4 bytes
-	size = ALIGN4(size);
-
-	//TODO: Check malloc result in this case
-	if (size > LARGE_BLOCK_SIZE) return NULL; 
-
-	//if the size that's being asked is lower than a minimum, then return the minimum
-	if (size < MIN_SIZE_TO_RETURN) size = MIN_SIZE_TO_RETURN;  
-
-	size_t block_size = determine_block_size(size);
-	if (amount_of_mallocs == 0) {
-		// If no first block, we create a bloque of min
-		// size (16kib)
-		region_free_list = grow_heap(block_size);
-	}
 	// updates statistics
 	amount_of_mallocs++;
 	requested_memory += size;
@@ -265,19 +338,24 @@ malloc(size_t size)
 	next = find_free_region(size);
 
 	if (!next) {
-		// next = grow_heap(size);
-		return NULL;  // Primera parte
+		size_t block_size = determine_block_size(size);
+		next = grow_heap(block_size);
 	}
 
 	next = split_free_regions(next, size);
 
 	next->free = false;  // Before returning the region, mark it as not free
+
+	print_all_free_list_elements(small_size_block_list);
+	// print_all_free_list_elements(medium_size_block_list);
+
 	return REGION2PTR(next);
 }
 
 void
 free(void *ptr)
 {
+	printfmt("\n##############FREE###########\n");
 	// updates statistics
 	amount_of_frees++;
 
@@ -287,6 +365,34 @@ free(void *ptr)
 	curr->free = true; 
 
 	coalesce_regions(curr); 
+
+	// // If there's an empty block, then it should be freed, even if this is O(n) and 
+	// // the region could have a reference to the block it belongs to, it's done this way
+	// // in order to avoid having circular references (block already has a reference to region)
+	// if (curr->size <= SMALL_BLOCK_SIZE) {
+	// 	//printfmt("\n##################ACA NO HABIA NADA################\n");
+	// 	int free_empty_blocks_success = free_empty_blocks(&small_size_block_list, SMALL_BLOCK_SIZE);
+	// 	// printfmt("\n##################ACA NO HABIA NADA################\n");
+	// 	if (free_empty_blocks_success == 0) {
+	// 		printfmt("ERROR: Failed freeing a totally empty block.\n");
+	// 		return;
+	// 	};
+	// }
+	// else if (curr->size <= MEDIUM_BLOCK_SIZE) {
+	// 	if (!free_empty_blocks(&small_size_block_list, MEDIUM_BLOCK_SIZE)) {
+	// 		printfmt("ERROR: Failed freeing a totally empty block.\n");
+	// 		return;
+	// 	}
+	// } 
+	// else {
+	// 	if (!free_empty_blocks(&small_size_block_list, LARGE_BLOCK_SIZE)) {
+	// 		printfmt("ERROR: Failed freeing a totally empty block.\n");
+	// 		return;
+	// 	}
+	// }
+
+	print_all_free_list_elements(small_size_block_list);
+	// print_all_free_list_elements(medium_size_block_list);
 }
 
 void *

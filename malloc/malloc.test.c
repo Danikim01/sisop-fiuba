@@ -110,15 +110,25 @@ multiple_mallocs_are_made_correctly(void)
 }
 
 
-// static void prueba(void) {
-// 	char *var = malloc(100);
+static void prueba(void) {
+	printfmt("HOLA\n");
+	char *var = malloc(100);
+	printfmt("HOLA\n");
 
-// 	ASSERT_TRUE("FIN PRIMER MALLOC", true == true);
+	ASSERT_TRUE("FIN PRIMER MALLOC", true == true);
 
-// 	char *var2 = malloc(200);
+	char *var2 = malloc(300);
 
-// 	ASSERT_TRUE("FIN SEGUNDO MALLOC", true == true);
-// }
+	ASSERT_TRUE("FIN PRIMER MALLOC", true == true);
+
+	free(var);
+	free(var2);
+
+	// printfmt("\n$$$$$$$$$$$$$$$$DEBERIA HABER UNA SOLA REGION$$$$$$$$$$$$$$$\n");
+	// char* var3 = malloc(1048476);
+
+	// free(var3);
+}
 
 
 int
@@ -131,7 +141,7 @@ main(void)
 	run_test(correct_amount_of_requested_memory);
 	run_test(multiple_mallocs_are_made_correctly);
 
-	// run_test(prueba);
+	run_test(prueba);
 
 
 	return 0;
