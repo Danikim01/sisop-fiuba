@@ -57,7 +57,7 @@ region_first_fist(struct block *block, size_t size)
 	return NULL;
 }
 
-
+// Finds the best fitted region within a block that can hold at least size bytes
 static struct region *
 first_fit(struct block *block_list, size_t size)
 {
@@ -74,39 +74,109 @@ first_fit(struct block *block_list, size_t size)
 	return NULL;
 }
 
+static struct region *
+region_best_fit(struct block *block, size_t size)
+{
+	struct region *act = block->first_region;
+	struct region *best_fit = NULL;
+	while (act != NULL) {
+		if (act->free && act->size >= size) {
+			// printfmt("region is free and has enought size\n");
+			if (!best_fit) {
+				// printfmt("best fit hasn't been set yet\n");
+				best_fit = act;
+			} else if (act->size < best_fit->size) {
+				// printfmt("actual size is better fit than actual best\n");
+				best_fit = act;
+			}
+		}  // else
+		   //  printfmt("region is not free or is already in use\n");
+		act = act->next;
+	}
+
+	return best_fit;
+}
+
+static struct region *
+best_fit(struct block *block_list, size_t size)
+{
+	struct region *best_fitting_region = NULL;
+
+	// we have to go through all blocks in case
+	// region next is of smaller size than act region
+	// while (block_list != NULL) {
+	printfmt("iterating a block...\n");
+	struct region *block_best_fitting_region =
+	        region_best_fit(block_list, size);
+
+	if (!best_fitting_region || 0 == 0)
+		printfmt("didn't find a fit\n");
+	//     block_best_fitting_region->size < best_fitting_region->size) {
+	printfmt("found a better fit in iterated block\n");
+	best_fitting_region = block_best_fitting_region;
+	// }
+
+	// block_list = block_list->next;
+	// }
+
+	return best_fitting_region;
+}
 
 static struct region *
 find_free_region(size_t size)
 {
 	struct region *fitting_region = NULL;  // Should never be NULL
 
-#ifdef FIRST_FIT
-
 	if (size <= SMALL_BLOCK_SIZE) {
+#ifdef FIRST_FIT
 		fitting_region = first_fit(small_size_block_list, size);
-		if (fitting_region != NULL)
-			return fitting_region;
-
-		fitting_region = first_fit(medium_size_block_list, size);
-		if (fitting_region != NULL)
-			return fitting_region;
-
-		fitting_region = first_fit(large_size_block_list, size);
-	} else if (size <= MEDIUM_BLOCK_SIZE) {
-		fitting_region = first_fit(medium_size_block_list, size);
-		if (fitting_region != NULL)
-			return fitting_region;
-
-		fitting_region = first_fit(large_size_block_list, size);
-	} else {
-		fitting_region = first_fit(large_size_block_list, size);
-	}
-
 #endif
-
 #ifdef BEST_FIT
-	// Your code here for "best fit"
+		fitting_region = best_fit(small_size_block_list, size);
 #endif
+		if (fitting_region != NULL)
+			return fitting_region;
+
+#ifdef FIRST_FIT
+		fitting_region = first_fit(medium_size_block_list, size);
+#endif
+#ifdef BEST_FIT
+		fitting_region = best_fit(medium_size_block_list, size);
+#endif
+		if (fitting_region != NULL)
+			return fitting_region;
+
+#ifdef FIRST_FIT
+		fitting_region = first_fit(large_size_block_list, size);
+#endif
+#ifdef BEST_FIT
+		fitting_region = best_fit(large_size_block_list, size);
+#endif
+	} else if (size <= MEDIUM_BLOCK_SIZE) {
+#ifdef FIRST_FIT
+		fitting_region = first_fit(medium_size_block_list, size);
+#endif
+#ifdef BEST_FIT
+		fitting_region = best_fit(medium_size_block_list, size);
+#endif
+
+		if (fitting_region != NULL)
+			return fitting_region;
+
+#ifdef FIRST_FIT
+		fitting_region = first_fit(large_size_block_list, size);
+#endif
+#ifdef BEST_FIT
+		fitting_region = best_fit(large_size_block_list, size);
+#endif
+	} else {
+#ifdef FIRST_FIT
+		fitting_region = first_fit(large_size_block_list, size);
+#endif
+#ifdef BEST_FIT
+		fitting_region = best_fit(large_size_block_list, size);
+#endif
+	}
 
 	// If you get to the end of the free list then you couldn't find the region you needed then
 	// next = then so this is equivalent to return NULL
@@ -390,6 +460,8 @@ malloc(size_t size)
 
 	next->free = false;  // Before returning the region, mark it as not free
 
+	print_all_free_list_elements(small_size_block_list);
+	printfmt("________________________________________________________\n");
 	return REGION2PTR(next);
 }
 

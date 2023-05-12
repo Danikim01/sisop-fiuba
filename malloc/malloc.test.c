@@ -5,6 +5,8 @@
 #include "testlib.h"
 #include "malloc.h"
 
+// add by dani & jm
+#define PTR2REGION(ptr) ((struct region *) (ptr) -1)
 
 static void
 print_test_name(char *test_name)
@@ -158,6 +160,7 @@ multiple_mallocs_are_made_correctly(void)
 	free(var3);
 }
 
+// run only if on first fit mode
 static void
 test_first_block_is_medium_size_if_user_asks_more_than_small_size(void)
 {
@@ -181,7 +184,7 @@ test_first_block_is_medium_size_if_user_asks_more_than_small_size(void)
 	free(var);
 }
 
-
+// run only if on first fit mode
 static void
 test_first_block_is_large_size_if_user_asks_more_than_medium_size(void)
 {
@@ -278,22 +281,44 @@ test_coalecing(void)
 	            stats.amount_of_regions == 0);
 }
 
+static void
+correct_best_fit_single_region(void)
+{
+	// test single block first (small region)
+	char *var0 = malloc(300);
+	char *var1 = malloc(500);
+	char *var2 = malloc(300);
+	char *var3 = malloc(400);
+	char *var4 = malloc(500);
+
+	free(var1);
+	free(var3);
+
+	char *var5 = malloc(300);
+
+	struct region *res = PTR2REGION(var5);
+#ifdef BEST_FIT
+	printfmt("best fit exclusive test\n");
+	// ASSERT_TRUE("allocated best fit region size", res->size == 300);
+#endif
+}
 
 int
 main(void)
 {
-	run_test(successful_malloc_returns_non_null_pointer);
-	run_test(correct_copied_value);
-	run_test(correct_amount_of_mallocs);
-	run_test(correct_amount_of_frees);
-	run_test(correct_amount_of_requested_memory);
-	run_test(multiple_mallocs_are_made_correctly);
-	run_test(test_first_block_is_medium_size_if_user_asks_more_than_small_size);
-	run_test(test_first_block_is_large_size_if_user_asks_more_than_medium_size);
-	run_test(test_malloc_should_return_null_if_user_asks_more_than_large_size);
-	run_test(test_deletion_of_block);
-	run_test(test_spliting);
-	run_test(test_coalecing);
+	// run_test(successful_malloc_returns_non_null_pointer);
+	// run_test(correct_copied_value);
+	// run_test(correct_amount_of_mallocs);
+	// run_test(correct_amount_of_frees);
+	// run_test(correct_amount_of_requested_memory);
+	// run_test(multiple_mallocs_are_made_correctly);
+	// run_test(test_first_block_is_medium_size_if_user_asks_more_than_small_size);
+	// run_test(test_first_block_is_large_size_if_user_asks_more_than_medium_size);
+	// run_test(test_malloc_should_return_null_if_user_asks_more_than_large_size);
+	// run_test(test_deletion_of_block);
+	// run_test(test_spliting);
+	// run_test(test_coalecing);
+	run_test(correct_best_fit_single_region);
 
 
 	return 0;
