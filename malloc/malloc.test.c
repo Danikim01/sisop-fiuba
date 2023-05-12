@@ -299,25 +299,26 @@ correct_best_fit_single_region(void)
 	struct region *res = PTR2REGION(var5);
 #ifdef BEST_FIT
 	printfmt("best fit exclusive test\n");
-	// ASSERT_TRUE("allocated best fit region size", res->size == 300);
+	ASSERT_TRUE("allocated best fit region size", res->next->size == 100-sizeof(struct region));
+	ASSERT_TRUE("allocated best fit is free", res->next->free == true);
 #endif
 }
 
 int
 main(void)
 {
-	// run_test(successful_malloc_returns_non_null_pointer);
-	// run_test(correct_copied_value);
-	// run_test(correct_amount_of_mallocs);
-	// run_test(correct_amount_of_frees);
-	// run_test(correct_amount_of_requested_memory);
-	// run_test(multiple_mallocs_are_made_correctly);
-	// run_test(test_first_block_is_medium_size_if_user_asks_more_than_small_size);
-	// run_test(test_first_block_is_large_size_if_user_asks_more_than_medium_size);
-	// run_test(test_malloc_should_return_null_if_user_asks_more_than_large_size);
-	// run_test(test_deletion_of_block);
-	// run_test(test_spliting);
-	// run_test(test_coalecing);
+	run_test(successful_malloc_returns_non_null_pointer);
+	run_test(correct_copied_value);
+	run_test(correct_amount_of_mallocs);
+	run_test(correct_amount_of_frees);
+	run_test(correct_amount_of_requested_memory);
+	run_test(multiple_mallocs_are_made_correctly);
+	run_test(test_first_block_is_medium_size_if_user_asks_more_than_small_size);
+	run_test(test_first_block_is_large_size_if_user_asks_more_than_medium_size);
+	run_test(test_malloc_should_return_null_if_user_asks_more_than_large_size);
+	run_test(test_deletion_of_block);
+	run_test(test_spliting);
+	run_test(test_coalecing);
 	run_test(correct_best_fit_single_region);
 
 

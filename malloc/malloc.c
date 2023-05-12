@@ -78,16 +78,26 @@ static struct region *
 region_best_fit(struct block *block, size_t size)
 {
 	struct region *act = block->first_region;
+	//printfmt("La primera region del block es %d y su siguiente tiene tamaño\n",act->size,act->next->size);
+	if(!act->next){
+		printfmt("La region es NULLLL");
+	}
 	struct region *best_fit = NULL;
 	while (act != NULL) {
+		printfmt("El size actual del bloque es %d\n",act->size);
+		if(!act->free){
+			printfmt("La region con size %d esta ocupada\n",act->size);
+		}
 		if (act->free && act->size >= size) {
-			// printfmt("region is free and has enought size\n");
+			printfmt("ASDFASDFASJDKHFKJSDregion is free and has enought size: %d\n",act->size);
 			if (!best_fit) {
-				// printfmt("best fit hasn't been set yet\n");
+				printfmt("best fit hasn't been set yet\n");
 				best_fit = act;
 			} else if (act->size < best_fit->size) {
 				// printfmt("actual size is better fit than actual best\n");
+				printfmt("Seteo el nuevo best fit, cuyo tamaño va a ser %d\n",act->size);
 				best_fit = act;
+				//printfmt("El nuevo best fit en region es %d\n",best_fit->size);
 			}
 		}  // else
 		   //  printfmt("region is not free or is already in use\n");
@@ -104,20 +114,22 @@ best_fit(struct block *block_list, size_t size)
 
 	// we have to go through all blocks in case
 	// region next is of smaller size than act region
-	// while (block_list != NULL) {
-	printfmt("iterating a block...\n");
-	struct region *block_best_fitting_region =
-	        region_best_fit(block_list, size);
+	while (block_list != NULL) {
+		printfmt("iterating a block...\n");
+		struct region *block_best_fitting_region =
+				region_best_fit(block_list, size);
+		
+		if(!block_best_fitting_region){
+			printfmt("es NULLLL\n");
+		}
 
-	if (!best_fitting_region || 0 == 0)
-		printfmt("didn't find a fit\n");
-	//     block_best_fitting_region->size < best_fitting_region->size) {
-	printfmt("found a better fit in iterated block\n");
-	best_fitting_region = block_best_fitting_region;
-	// }
+		if (!best_fitting_region || (block_best_fitting_region->size < best_fitting_region->size)){
+			best_fitting_region = block_best_fitting_region;
+			//printfmt("La region de la nueva best fitting region es %d\n",best_fitting_region->size);
+		}
 
-	// block_list = block_list->next;
-	// }
+		block_list = block_list->next;
+	}
 
 	return best_fitting_region;
 }
@@ -127,57 +139,60 @@ find_free_region(size_t size)
 {
 	struct region *fitting_region = NULL;  // Should never be NULL
 
-	if (size <= SMALL_BLOCK_SIZE) {
-#ifdef FIRST_FIT
-		fitting_region = first_fit(small_size_block_list, size);
-#endif
 #ifdef BEST_FIT
-		fitting_region = best_fit(small_size_block_list, size);
-#endif
-		if (fitting_region != NULL)
-			return fitting_region;
+		if (size <= SMALL_BLOCK_SIZE) {
+				printfmt("ENTRAAAAA EN SMALL LISTTTTT\n");
+				fitting_region = best_fit(small_size_block_list, size);
 
-#ifdef FIRST_FIT
-		fitting_region = first_fit(medium_size_block_list, size);
-#endif
-#ifdef BEST_FIT
-		fitting_region = best_fit(medium_size_block_list, size);
-#endif
-		if (fitting_region != NULL)
-			return fitting_region;
+				if (fitting_region != NULL){
+					return fitting_region;
+				}
 
-#ifdef FIRST_FIT
-		fitting_region = first_fit(large_size_block_list, size);
-#endif
-#ifdef BEST_FIT
-		fitting_region = best_fit(large_size_block_list, size);
-#endif
+				fitting_region = best_fit(medium_size_block_list, size);
+
+				if (fitting_region != NULL)
+					return fitting_region;
+
+				fitting_region = best_fit(large_size_block_list, size);
+
 	} else if (size <= MEDIUM_BLOCK_SIZE) {
-#ifdef FIRST_FIT
-		fitting_region = first_fit(medium_size_block_list, size);
-#endif
-#ifdef BEST_FIT
-		fitting_region = best_fit(medium_size_block_list, size);
+				fitting_region = best_fit(medium_size_block_list, size);
+
+				if (fitting_region != NULL)
+					return fitting_region;
+
+				fitting_region = best_fit(large_size_block_list, size);
+
+			} else {
+				fitting_region = best_fit(large_size_block_list, size);
+
+		}		
 #endif
 
-		if (fitting_region != NULL)
-			return fitting_region;
-
 #ifdef FIRST_FIT
-		fitting_region = first_fit(large_size_block_list, size);
-#endif
-#ifdef BEST_FIT
-		fitting_region = best_fit(large_size_block_list, size);
-#endif
-	} else {
-#ifdef FIRST_FIT
-		fitting_region = first_fit(large_size_block_list, size);
-#endif
-#ifdef BEST_FIT
-		fitting_region = best_fit(large_size_block_list, size);
-#endif
-	}
+	if (size <= SMALL_BLOCK_SIZE) {
+			fitting_region = first_fit(small_size_block_list, size);
+				if (fitting_region != NULL){
+					return fitting_region;
+				}
+				fitting_region = first_fit(medium_size_block_list, size);
+				if (fitting_region != NULL)
+					return fitting_region;
 
+				fitting_region = first_fit(large_size_block_list, size);
+
+	} else if (size <= MEDIUM_BLOCK_SIZE) {
+
+				fitting_region = first_fit(medium_size_block_list, size);
+				if (fitting_region != NULL)
+					return fitting_region;
+
+				fitting_region = first_fit(large_size_block_list, size);
+
+			} else {
+				fitting_region = first_fit(large_size_block_list, size);
+		}			
+#endif
 	// If you get to the end of the free list then you couldn't find the region you needed then
 	// next = then so this is equivalent to return NULL
 	return fitting_region;
@@ -256,7 +271,7 @@ split_free_regions(struct region *region_to_split, size_t desired_size)
 	// TODO: Check if it makes sense to split if the desired size is big
 	// compared to the region. If if have 100 bytes and they ask me for 99,
 	// does it make sense to split?
-
+	printfmt("La region a splitear tiene tamañooo %d\n",region_to_split->size);
 	// Check if the region_to_split can be split
 	if (region_to_split->size > desired_size) {
 		size_t prev_region_size = region_to_split->size;
@@ -457,6 +472,8 @@ malloc(size_t size)
 	}
 
 	next = split_free_regions(next, size);
+	
+	printfmt("seteo a false a la region con tamaño%d\n",next->size);
 
 	next->free = false;  // Before returning the region, mark it as not free
 
@@ -468,6 +485,7 @@ malloc(size_t size)
 void
 free(void *ptr)
 {
+	printfmt("ENTRAAAA AL FREEE\n");
 	// updates statistics
 	amount_of_frees++;
 
@@ -506,6 +524,9 @@ free(void *ptr)
 			return;
 		}
 	}
+
+	print_all_free_list_elements(small_size_block_list);
+	printfmt("----------------------------------------------------------------------\n");
 }
 
 void *
