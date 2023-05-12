@@ -218,31 +218,33 @@ split_free_regions(struct region *region_to_split, size_t desired_size)
 }
 
 
-void
-coalesce_regions(struct region *curr)
-{
-	struct region *prev = curr->prev;
-	struct region *next = curr->next;
+static struct region* coalesce_regions(struct region* curr) {
+    struct region* prev = curr->prev;
+    struct region* next = curr->next;
 
-	if (next != NULL) {
-		if (next->free == true) {
-			curr->size =
-			        curr->size + sizeof(struct region) + next->size;
-			curr->next = next->next;  // Actualize the linked list
+    if (next != NULL) {
+        if (next->free == true) {
+            curr->size = curr->size +
+                        sizeof(struct region) +
+                        next->size;
+            curr->next = next->next;  // Actualize the linked list
 			amount_of_regions--;
-		}
-	}
+        }
+    }
 
-	if (prev != NULL) {
-		if (prev->free == true) {
-			prev->size =
-			        prev->size + sizeof(struct region) + curr->size;
-			prev->next = curr->next;  // Actualize the linked list
+    if (prev != NULL) {
+        if (prev->free == true) {
+            prev->size = prev->size +
+                        sizeof(struct region) +
+                        curr->size;
+            prev->next = curr->next;  // Actualize the linked list
 			amount_of_regions--;
-		}
-		return prev;
-	}
-	return curr;
+
+            return prev;
+        } 
+    }
+
+    return curr;
 }
 
 
@@ -403,14 +405,14 @@ free(void *ptr)
 
 	curr->free = true;
 
-	coalesce_regions(curr);
+	struct region* coalesced_region = coalesce_regions(curr);
 
 	// If there's an empty block, then it should be freed, even if this
 	// is O(n) and the region could have a reference to the block it belongs
 	// to, it's done this way in order to avoid having circular references
 	// (block already has a reference to region)
 
-	if (curr->size <= SMALL_BLOCK_SIZE) {
+	if (coalesced_region->size <= SMALL_BLOCK_SIZE) {
 		int free_empty_blocks_success =
 		        free_empty_blocks(&small_size_block_list,
 		                          SMALL_BLOCK_SIZE);
@@ -419,7 +421,7 @@ free(void *ptr)
 			         "block.\n");
 			return;
 		}
-	} else if (curr->size <= MEDIUM_BLOCK_SIZE) {
+	} else if (coalesced_region <= MEDIUM_BLOCK_SIZE) {
 		if (!free_empty_blocks(&small_size_block_list, MEDIUM_BLOCK_SIZE)) {
 			printfmt("ERROR: Failed freeing a totally empty "
 			         "block.\n");
