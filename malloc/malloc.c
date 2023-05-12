@@ -218,33 +218,33 @@ split_free_regions(struct region *region_to_split, size_t desired_size)
 }
 
 
-static struct region* coalesce_regions(struct region* curr) {
-    struct region* prev = curr->prev;
-    struct region* next = curr->next;
+static struct region *
+coalesce_regions(struct region *curr)
+{
+	struct region *prev = curr->prev;
+	struct region *next = curr->next;
 
-    if (next != NULL) {
-        if (next->free == true) {
-            curr->size = curr->size +
-                        sizeof(struct region) +
-                        next->size;
-            curr->next = next->next;  // Actualize the linked list
+	if (next != NULL) {
+		if (next->free == true) {
+			curr->size =
+			        curr->size + sizeof(struct region) + next->size;
+			curr->next = next->next;  // Actualize the linked list
 			amount_of_regions--;
-        }
-    }
+		}
+	}
 
-    if (prev != NULL) {
-        if (prev->free == true) {
-            prev->size = prev->size +
-                        sizeof(struct region) +
-                        curr->size;
-            prev->next = curr->next;  // Actualize the linked list
+	if (prev != NULL) {
+		if (prev->free == true) {
+			prev->size =
+			        prev->size + sizeof(struct region) + curr->size;
+			prev->next = curr->next;  // Actualize the linked list
 			amount_of_regions--;
 
-            return prev;
-        } 
-    }
+			return prev;
+		}
+	}
 
-    return curr;
+	return curr;
 }
 
 
@@ -405,7 +405,7 @@ free(void *ptr)
 
 	curr->free = true;
 
-	struct region* coalesced_region = coalesce_regions(curr);
+	struct region *coalesced_region = coalesce_regions(curr);
 
 	// If there's an empty block, then it should be freed, even if this
 	// is O(n) and the region could have a reference to the block it belongs
