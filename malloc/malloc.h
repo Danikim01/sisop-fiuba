@@ -7,20 +7,25 @@ struct malloc_stats {
 	int mallocs;
 	int frees;
 	int requested_memory;
+	int memory_being_use;
+	int amount_of_regions;
+	int amount_of_small_blocks;
+	int amount_of_medium_blocks;
+	int amount_of_large_blocks;
 };
 
 
 struct region {  // Ocupies 32 bytes in memory
 	bool free;  // This aproach is aparently better than the one in the given text
 	size_t size;  // The actual regions size, does not include the header
-	struct region* next;
-	struct region* prev; //Exclusively to facilitate coalecing
+	struct region *next;
+	struct region *prev;  // Exclusively to facilitate coalecing
 };
 
 
 struct block {
-	struct region* first_region; 
-	struct block* next;
+	struct region *first_region;
+	struct block *next;
 };
 
 
