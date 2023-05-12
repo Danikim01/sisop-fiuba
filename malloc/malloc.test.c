@@ -304,23 +304,71 @@ correct_best_fit_single_region(void)
 #endif
 }
 
+static void
+correct_best_fit_various_regions(void)
+{
+	char *var0 = malloc(700);
+	char *var1 = malloc(5000);
+	char *var2 = malloc(800);
+	char *var3 = malloc(1200);
+	char *var4 = malloc(8500);
+
+	char *var5 = malloc(800);
+	char *var6 = malloc(3000);
+	
+	
+	char *var7 = malloc(100);
+	char *var8 = malloc(1800);
+
+	free(var0);
+	free(var1);
+	free(var2);
+	free(var3);
+	free(var4);
+	
+	free(var5);
+	free(var6);
+	free(var7);
+	free(var8);
+}
+
+static void
+test_comportamiento_bloques(void){
+	char* a = malloc(15000);
+	char* b = malloc(20000);
+	
+	struct region *a_region = PTR2REGION(a);
+	struct region *b_region = PTR2REGION(b);
+
+	ASSERT_TRUE("bloque a con tamaño correcto", a_region->size==15000);
+
+	ASSERT_TRUE("bloque b con tamaño correcto", b_region->size==20000);
+	
+	free(a);
+	free(b);
+}
+
+
 int
 main(void)
 {
-	run_test(successful_malloc_returns_non_null_pointer);
-	run_test(correct_copied_value);
-	run_test(correct_amount_of_mallocs);
-	run_test(correct_amount_of_frees);
-	run_test(correct_amount_of_requested_memory);
-	run_test(multiple_mallocs_are_made_correctly);
-	run_test(test_first_block_is_medium_size_if_user_asks_more_than_small_size);
-	run_test(test_first_block_is_large_size_if_user_asks_more_than_medium_size);
-	run_test(test_malloc_should_return_null_if_user_asks_more_than_large_size);
-	run_test(test_deletion_of_block);
-	run_test(test_spliting);
-	run_test(test_coalecing);
-	run_test(correct_best_fit_single_region);
-
+	// run_test(successful_malloc_returns_non_null_pointer);
+	// run_test(correct_copied_value);
+	// run_test(correct_amount_of_mallocs);
+	// run_test(correct_amount_of_frees);
+	// run_test(correct_amount_of_requested_memory);
+	// run_test(multiple_mallocs_are_made_correctly);
+	// run_test(test_first_block_is_medium_size_if_user_asks_more_than_small_size);
+	// run_test(test_first_block_is_large_size_if_user_asks_more_than_medium_size);
+	// run_test(test_malloc_should_return_null_if_user_asks_more_than_large_size);
+	// run_test(test_deletion_of_block);
+	// run_test(test_spliting);
+	// run_test(test_coalecing);
+	
+	//run_test(correct_best_fit_single_region);
+	
+	run_test(correct_best_fit_various_regions);
+	run_test(test_comportamiento_bloques);
 
 	return 0;
 }

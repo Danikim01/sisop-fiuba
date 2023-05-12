@@ -344,17 +344,24 @@ print_all_free_list_elements(struct block *list)
 		         "NADA################\n");
 		return;
 	}
-	struct region *act = list->first_region;
-	int contador = 0;
-	while (act != NULL) {
-		printfmt("\n------REGION ACTUAL NUMERO: %d------\n", contador);
-		printfmt("TAM: %d\n", act->size + sizeof(struct region));
-		printfmt("LIBRE: %d\n", act->free);
-		printfmt("TAM DEL BLOCK: %d\n", sizeof(struct block));
-		printfmt("TAM DEL REGION: %d\n", sizeof(struct region));
+	struct block* aux = list;
+	int contador_blques = 0;
+	while(aux != NULL){
+		printfmt("\n------BLOQUE ACTUAL NUMERO: %d------\n", contador_blques);
+		struct region *act = aux->first_region;
+		int contador = 0;
+		while (act != NULL) {
+			printfmt("\n------REGION ACTUAL NUMERO: %d------\n", contador);
+			printfmt("TAM: %d\n", act->size + sizeof(struct region));
+			printfmt("LIBRE: %d\n", act->free);
+			printfmt("TAM DEL BLOCK: %d\n", sizeof(struct block));
+			printfmt("TAM DEL REGION: %d\n", sizeof(struct region));
 
-		act = act->next;
-		contador++;
+			act = act->next;
+			contador++;
+		}
+		contador_blques++;
+		aux = aux->next; 
 	}
 }
 
@@ -477,7 +484,12 @@ malloc(size_t size)
 
 	next->free = false;  // Before returning the region, mark it as not free
 
+	printfmt("IMPRIMO LOS BLOQUES CHIQUITOSSS\n");
 	print_all_free_list_elements(small_size_block_list);
+	printfmt("IMPRIMO LOS BLOQUES MEDIANOSSS\n");
+	print_all_free_list_elements(medium_size_block_list);
+	printfmt("IMPRIMO LOS BLOQUES LARGOOOOS\n");
+	print_all_free_list_elements(large_size_block_list);
 	printfmt("________________________________________________________\n");
 	return REGION2PTR(next);
 }
@@ -485,7 +497,6 @@ malloc(size_t size)
 void
 free(void *ptr)
 {
-	printfmt("ENTRAAAA AL FREEE\n");
 	// updates statistics
 	amount_of_frees++;
 
@@ -525,8 +536,8 @@ free(void *ptr)
 		}
 	}
 
-	print_all_free_list_elements(small_size_block_list);
-	printfmt("----------------------------------------------------------------------\n");
+	//print_all_free_list_elements(small_size_block_list);
+	//printfmt("----------------------------------------------------------------------\n");
 }
 
 void *
