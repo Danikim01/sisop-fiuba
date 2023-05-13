@@ -508,6 +508,18 @@ calloc(size_t nmemb, size_t size)
 void *
 realloc(void *ptr, size_t size)
 {
+	//  Caso achicar:
+	//  |header|                    | header|                    |
+	//  |header|              |     | header|                    |
+	//
+	//  if (size <= sizeof(struct region)) return NULL; //O simplemente no hacer nada
+	//  else call splitting function with struct region of the header to the left
+	//
+	//  Cualquier otro caso:
+	//  Hacer malloc del tam pedido
+	//  Copiar lo de la region vieja a la nueva
+	//  Hacer free de la region vieja
+
 	// Si ptr es igual a NULL, el comportamiento es igual a malloc(size)
 	if (ptr == NULL) {
 		return malloc(size);
