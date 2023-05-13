@@ -98,6 +98,9 @@ region_best_fit(struct block *block_list, size_t size)
 static struct region *
 best_fit(struct block *block_list, size_t size)
 {
+	if (!block_list)
+		return NULL;
+
 	struct region *best_region = NULL;
 	while (block_list != NULL) {
 		struct region *candidate_best_fitting_region =
@@ -123,79 +126,34 @@ find_free_region(size_t size)
 
 #ifdef BEST_FIT
 	if (size <= SMALL_BLOCK_SIZE) {
-		if (small_size_block_list != NULL) {
-			fitting_region = best_fit(small_size_block_list, size);
-			if (fitting_region != NULL) {
-				return fitting_region;
-			}
+		if (fitting_region = best_fit(small_size_block_list, size)) {
+			return fitting_region;
+		} else if (fitting_region =
+		                   best_fit(medium_size_block_list, size)) {
+			return fitting_region;
 		}
-		if (medium_size_block_list != NULL) {
-			fitting_region = best_fit(medium_size_block_list, size);
-			if (fitting_region != NULL) {
-				return fitting_region;
-			}
-		}
-
-		if (large_size_block_list != NULL) {
-			fitting_region = best_fit(large_size_block_list, size);
-		}
-
 	} else if (size <= MEDIUM_BLOCK_SIZE) {
-		if (medium_size_block_list != NULL) {
-			fitting_region = best_fit(medium_size_block_list, size);
-			if (fitting_region != NULL) {
-				return fitting_region;
-			}
-		}
-
-		if (large_size_block_list != NULL) {
-			fitting_region = best_fit(large_size_block_list, size);
-		}
-
-	} else {
-		if (large_size_block_list != NULL) {
-			fitting_region = best_fit(large_size_block_list, size);
+		if (fitting_region = best_fit(medium_size_block_list, size)) {
+			return fitting_region;
 		}
 	}
+	fitting_region = best_fit(large_size_block_list, size);
 #endif
 
 #ifdef FIRST_FIT
 	if (size <= SMALL_BLOCK_SIZE) {
-		if (small_size_block_list != NULL) {
-			fitting_region = first_fit(small_size_block_list, size);
-			if (fitting_region != NULL) {
-				return fitting_region;
-			}
+		if (fitting_region = first_fit(small_size_block_list, size)) {
+			return fitting_region;
+		} else if (fitting_region =
+		                   first_fit(medium_size_block_list, size)) {
+			return fitting_region;
 		}
-
-		if (medium_size_block_list != NULL) {
-			fitting_region = first_fit(medium_size_block_list, size);
-			if (fitting_region != NULL) {
-				return fitting_region;
-			}
-		}
-
-		if (large_size_block_list != NULL) {
-			fitting_region = first_fit(large_size_block_list, size);
-		}
-
 	} else if (size <= MEDIUM_BLOCK_SIZE) {
-		if (medium_size_block_list != NULL) {
-			fitting_region = first_fit(medium_size_block_list, size);
-			if (fitting_region != NULL) {
-				return fitting_region;
-			}
-		}
-
-		if (large_size_block_list != NULL) {
-			fitting_region = first_fit(large_size_block_list, size);
-		}
-
-	} else {
-		if (large_size_block_list != NULL) {
-			fitting_region = first_fit(large_size_block_list, size);
+		if (fitting_region = first_fit(medium_size_block_list, size)) {
+			return fitting_region;
 		}
 	}
+	fitting_region = first_fit(large_size_block_list, size);
 #endif
 	// If you get to the end of the free list then you couldn't find the region you needed then
 	// next = then so this is equivalent to return NULL
