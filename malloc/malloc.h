@@ -26,7 +26,7 @@ struct region {  // Ocupies 32 bytes in memory
 struct block {
 	struct region *first_region;
 	struct block *next;
-	// suggestion add max_size
+	// suggestion add max_size, answer: no need since we have 3 block lists.
 };
 
 
