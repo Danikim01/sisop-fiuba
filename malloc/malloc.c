@@ -64,17 +64,6 @@ calcular_memoria_restante(struct block *bloque)
 	return memoria;
 }
 
-int
-memoria_restante_en_bloque()
-{
-	if (small_size_block_list != NULL) {
-		return calcular_memoria_restante(small_size_block_list);
-	} else if (medium_size_block_list) {
-		return calcular_memoria_restante(medium_size_block_list);
-	} else if (large_size_block_list) {
-		return calcular_memoria_restante(large_size_block_list);
-	}
-}
 
 // finds the next free region
 // that holds the requested size
@@ -101,7 +90,6 @@ region_first_fist(struct block *block, size_t size)
 static struct region *
 first_fit(struct block *block_list, size_t size)
 {
-
 	// printfmt("El size pedido para el malloc es %d y me queda %i memoria
 	// disponible en el bloque\n",size,memoria_restante_en_bloque());
 	if ((int) size > calcular_memoria_restante(block_list)) {
@@ -134,7 +122,7 @@ region_best_fit(struct block *block, size_t size)
 			} else if (act->size < best_fit->size) {
 				best_fit = act;
 			}
-		}  
+		}
 		act = act->next;
 	}
 
@@ -206,11 +194,11 @@ find_free_region(size_t size)
 		fitting_region = first_fit(small_size_block_list, size);
 		if (fitting_region != NULL) {
 			return fitting_region;
-		} 
+		}
 		fitting_region = first_fit(medium_size_block_list, size);
 		if (fitting_region != NULL) {
 			return fitting_region;
-		} 
+		}
 		fitting_region = first_fit(large_size_block_list, size);
 
 	} else if (size <= MEDIUM_BLOCK_SIZE) {
@@ -588,7 +576,9 @@ realloc(void *ptr, size_t size)
 	// Si size es igual a cero (y ptr no es NULL) debería ser equivalente a free(ptr)
 	if (size == 0) {
 		free(ptr);
-		errno = EINVAL; //EINVAL es un código de error en sistemas Unix y similares que indica que un argumento proporcionado a una función es inválido o no es compatible
+		errno = EINVAL;  // EINVAL es un código de error en sistemas Unix
+		                 // y similares que indica que un argumento proporcionado
+		                 // a una función es inválido o no es compatible
 		return NULL;
 	}
 

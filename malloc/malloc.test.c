@@ -348,8 +348,6 @@ correct_best_fit_various_regions(void)
 }
 
 
-
-
 static void
 test_tamaño_bloques(void)
 {
@@ -368,75 +366,97 @@ test_tamaño_bloques(void)
 }
 
 
-void test_realloc_reduce_size(){
-    size_t initial_size = 10;
-    size_t new_size = 5;
-    int *ptr = (int *)malloc(initial_size * sizeof(int));
-    for (size_t i = 0; i < initial_size; i++) {
-        ptr[i] = i;
-    }
-    int *new_ptr = (int *)realloc(ptr, new_size * sizeof(int));
-    ASSERT_TRUE("Realloc no falla",new_ptr != NULL); // realloc no falla
-    ASSERT_TRUE("Realloc no devuelve un nuevo puntero",new_ptr == ptr); // realloc no devuelve un nuevo puntero
-    for (size_t i = 0; i < new_size; i++) {
-        ASSERT_TRUE("Se conservan los datos de la region original",new_ptr[i] == i); // se conservan los datos de la región original
-    }
-    free(new_ptr);
+void
+test_realloc_reduce_size()
+{
+	size_t initial_size = 10;
+	size_t new_size = 5;
+	int *ptr = (int *) malloc(initial_size * sizeof(int));
+	for (size_t i = 0; i < initial_size; i++) {
+		ptr[i] = i;
+	}
+	int *new_ptr = (int *) realloc(ptr, new_size * sizeof(int));
+	ASSERT_TRUE("Realloc no falla", new_ptr != NULL);  // realloc no falla
+	ASSERT_TRUE("Realloc no devuelve un nuevo puntero",
+	            new_ptr == ptr);  // realloc no devuelve un nuevo puntero
+	for (size_t i = 0; i < new_size; i++) {
+		ASSERT_TRUE("Se conservan los datos de la region original",
+		            new_ptr[i] ==
+		                    i);  // se conservan los datos de la región original
+	}
+	free(new_ptr);
 }
 
 
-void test_realloc_increase_size() {
-    size_t initial_size = 5;
-    size_t new_size = 10;
-    int *ptr = (int *)malloc(initial_size * sizeof(int));
-    for (size_t i = 0; i < initial_size; i++) {
-        ptr[i] = i;
-    }
-    int *new_ptr = (int *)realloc(ptr, new_size * sizeof(int));
-    ASSERT_TRUE("Realloc no falla",new_ptr != NULL); // realloc no falla
-    ASSERT_TRUE("Realloc no devuelve un nuevo puntero",new_ptr == ptr); // realloc no devuelve un nuevo puntero
-    for (size_t i = 0; i < initial_size; i++) {
-        ASSERT_TRUE("Se conservan los datos de la region original",new_ptr[i] == i); // se conservan los datos de la región original
-    }
-    for (size_t i = initial_size; i < new_size; i++) {
-        ASSERT_TRUE("La nueva memoria no se incializa",new_ptr[i] == 0); // la memoria nueva no se inicializa
-    }
-    free(new_ptr);
+void
+test_realloc_increase_size()
+{
+	size_t initial_size = 5;
+	size_t new_size = 10;
+	int *ptr = (int *) malloc(initial_size * sizeof(int));
+	for (size_t i = 0; i < initial_size; i++) {
+		ptr[i] = i;
+	}
+	int *new_ptr = (int *) realloc(ptr, new_size * sizeof(int));
+	ASSERT_TRUE("Realloc no falla", new_ptr != NULL);  // realloc no falla
+	ASSERT_TRUE("Realloc no devuelve un nuevo puntero",
+	            new_ptr == ptr);  // realloc no devuelve un nuevo puntero
+	for (size_t i = 0; i < initial_size; i++) {
+		ASSERT_TRUE("Se conservan los datos de la region original",
+		            new_ptr[i] ==
+		                    i);  // se conservan los datos de la región original
+	}
+	for (size_t i = initial_size; i < new_size; i++) {
+		ASSERT_TRUE("La nueva memoria no se incializa",
+		            new_ptr[i] == 0);  // la memoria nueva no se inicializa
+	}
+	free(new_ptr);
 }
 
-void test_realloc_same_size() {
-    size_t size = 5;
-    int *ptr = (int *)malloc(size * sizeof(int));
-    for (size_t i = 0; i < size; i++) {
-        ptr[i] = i;
-    }
-    int *new_ptr = (int *)realloc(ptr, size * sizeof(int));
-    ASSERT_TRUE("Realloc no falla",new_ptr != NULL); // realloc no falla
-    ASSERT_TRUE("Realloc no devuelve un nuevo puntero",new_ptr == ptr); // realloc no devuelve un nuevo puntero
-    for (size_t i = 0; i < size; i++) {
-        ASSERT_TRUE("La region no se modifica al hacer realloc con mismo tamaño",new_ptr[i] == i); // la región no se modifica
-    }
-    free(new_ptr);
+void
+test_realloc_same_size()
+{
+	size_t size = 5;
+	int *ptr = (int *) malloc(size * sizeof(int));
+	for (size_t i = 0; i < size; i++) {
+		ptr[i] = i;
+	}
+	int *new_ptr = (int *) realloc(ptr, size * sizeof(int));
+	ASSERT_TRUE("Realloc no falla", new_ptr != NULL);  // realloc no falla
+	ASSERT_TRUE("Realloc no devuelve un nuevo puntero",
+	            new_ptr == ptr);  // realloc no devuelve un nuevo puntero
+	for (size_t i = 0; i < size; i++) {
+		ASSERT_TRUE("La region no se modifica al hacer realloc con "
+		            "mismo tamaño",
+		            new_ptr[i] == i);  // la región no se modifica
+	}
+	free(new_ptr);
 }
 
-void test_realloc_null_ptr() {
-    size_t size = 10;
-    int *ptr = (int *)realloc(NULL, size * sizeof(int));
-    ASSERT_TRUE("Realloc con malloc NULL no falla",ptr != NULL); // realloc no falla
-    free(ptr);
+void
+test_realloc_null_ptr()
+{
+	size_t size = 10;
+	int *ptr = (int *) realloc(NULL, size * sizeof(int));
+	ASSERT_TRUE("Realloc con malloc NULL no falla",
+	            ptr != NULL);  // realloc no falla
+	free(ptr);
 }
 
-void test_realloc_zero_size() {
-    size_t size = 10;
-    int *ptr = (int *)malloc(size * sizeof(int));
-    void *new_ptr = realloc(ptr, 0);
-    ASSERT_TRUE("Realloc devuelve NULL",new_ptr == NULL); 
-    ASSERT_TRUE("errno es EINVAL",errno == EINVAL); 
-    free(ptr);
+void
+test_realloc_zero_size()
+{
+	size_t size = 10;
+	int *ptr = (int *) malloc(size * sizeof(int));
+	void *new_ptr = realloc(ptr, 0);
+	ASSERT_TRUE("Realloc devuelve NULL", new_ptr == NULL);
+	ASSERT_TRUE("errno es EINVAL", errno == EINVAL);
+	free(ptr);
 }
 
 static void
-run_realloc_tests(void){
+run_realloc_tests(void)
+{
 	print_test_name("test_realloc");
 	test_realloc_reduce_size();
 	test_realloc_increase_size();
@@ -462,12 +482,12 @@ main(void)
 	run_test(test_spliting);
 	run_test(test_coalecing);
 
-	//Correr con make -B -e USE_BF=true
+	// Correr con make -B -e USE_BF=true
 	run_test(correct_best_fit_single_region);
 	run_test(correct_best_fit_various_regions);
 	run_test(test_tamaño_bloques);
 
-	//Test realloc
+	// Test realloc
 	run_test(run_realloc_tests);
 
 	return 0;
