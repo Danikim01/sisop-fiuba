@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <sys/mman.h>
 #include <errno.h>
+#include <string.h>
 
 #include "malloc.h"
 #include "printfmt.h"
