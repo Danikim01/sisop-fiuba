@@ -436,6 +436,36 @@ correct_best_fit_various_regions(void)
 #endif
 
 static void
+test_calloc_allocates_desired_size_of_memory(void)
+{
+	print_test_name("test_calloc_allocates_desired_size_of_memory");
+	char *var = calloc(10, 50);  // should allocate 10x10bytes = 500 bytes
+
+	struct malloc_stats stats;
+	get_stats(&stats);
+
+	ASSERT_TRUE("Correct amount of allocations", stats.mallocs == 1);
+	ASSERT_TRUE("Correct amount of memory requested",
+	            stats.requested_memory == 500);
+	free(var);
+}
+
+static void
+test_memory_allocated_by_calloc_is_initializated_in_0(void)
+{
+	print_test_name(
+	        "test_memory_allocated_by_calloc_is_initializated_in_0");
+	char *var = calloc(5, sizeof(int));
+
+	for (int i = 0; i < 5; i++) {
+		printfmt("Element %d of calloc allocated memory is 0", i);
+		ASSERT_TRUE("", var[i] == 0);
+	}
+
+	free(var);
+}
+
+static void
 test_comportamiento_bloques(void)
 {
 	print_test_name("test_comportamiento_bloques");
@@ -483,7 +513,9 @@ main(void)
 	// run_test(correct_best_fit_various_regions);
 #endif
 
-	// run_test(test_comportamiento_bloques);
+	run_test(test_comportamiento_bloques);
+	run_test(test_calloc_allocates_desired_size_of_memory);
+	run_test(test_memory_allocated_by_calloc_is_initializated_in_0);
 
 	return 0;
 }
