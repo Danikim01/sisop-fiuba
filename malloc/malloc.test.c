@@ -345,6 +345,27 @@ correct_best_fit_various_regions(void)
 }
 
 static void
+correct_best_fit_various_regions_medium_block(void)
+{
+	char *var0 = malloc(700);
+	char *var1 = malloc(5000);
+	char *var2 = malloc(50000);
+	char* var3 = malloc(2381);
+	char* var4 = malloc(900);
+	char *var5 = malloc(9000);
+	char *var6 = malloc(10000);
+
+	free(var1);
+	free(var2);
+	free(var3);
+	free(var4);
+	free(var5);
+	free(var6);
+	
+}
+
+
+static void
 test_comportamiento_bloques(void){
 	char* a = malloc(15000);
 	char* b = malloc(20000);
@@ -381,6 +402,8 @@ main(void)
 	
 	run_test(correct_best_fit_various_regions);
 	//run_test(test_comportamiento_bloques);
+
+	//run_test(correct_best_fit_various_regions_medium_block);
 
 	return 0;
 }

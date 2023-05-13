@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/mman.h>
+#include <errno.h>
 
 #include "malloc.h"
 #include "printfmt.h"
@@ -35,104 +36,6 @@ int amount_of_regions = 0;
 int amount_of_small_blocks = 0;
 int amount_of_medium_blocks = 0;
 int amount_of_large_blocks = 0;
-
-// finds the next free region
-// that holds the requested size
-//
-
-// Finds the first region within a block that can hold at least size bytes
-static struct region *
-region_first_fist(struct block *block, size_t size)
-{
-	struct region *act = block->first_region;
-	while (act != NULL) {
-		if (act->size >= size && act->free == true) {
-			printfmt("ENCONTREE UNA REGIONNN\n");
-			act->free = false;
-			return act;
-		}
-		act = act->next;
-	}
-
-	return NULL;
-}
-
-// Finds the best fitted region within a block that can hold at least size bytes
-static struct region *
-first_fit(struct block *block_list, size_t size)
-{
-	struct region *first_fitting_region = NULL;
-	while (block_list != NULL) {
-		first_fitting_region = region_first_fist(block_list, size);
-
-		if (first_fitting_region != NULL)
-			return first_fitting_region;
-
-		block_list = block_list->next;
-	}
-
-	return NULL;
-}
-
-static struct region *
-region_best_fit(struct block *block, size_t size)
-{
-	struct region *act = block->first_region;
-	//printfmt("La primera region del block es %d y su siguiente tiene tamaño\n",act->size,act->next->size);
-	if(!act->next){
-		printfmt("La region es NULLLL");
-	}
-	struct region *best_fit = NULL;
-	while (act != NULL) {
-		printfmt("El size actual del bloque es %d\n",act->size);
-		if(!act->free){
-			printfmt("La region con size %d esta ocupada\n",act->size);
-		}
-		if (act->free && act->size >= size) {
-			printfmt("ASDFASDFASJDKHFKJSDregion is free and has enought size: %d\n",act->size);
-			if (!best_fit) {
-				printfmt("best fit hasn't been set yet\n");
-				best_fit = act;
-			} else if (act->size < best_fit->size) {
-				// printfmt("actual size is better fit than actual best\n");
-				printfmt("Seteo el nuevo best fit, cuyo tamaño va a ser %d\n",act->size);
-				best_fit = act;
-				//printfmt("El nuevo best fit en region es %d\n",best_fit->size);
-			}
-		}  // else
-		   //  printfmt("region is not free or is already in use\n");
-		act = act->next;
-	}
-
-	return best_fit;
-}
-
-static struct region *
-best_fit(struct block *block_list, size_t size)
-{
-	struct region *best_fitting_region = NULL;
-
-	// we have to go through all blocks in case
-	// region next is of smaller size than act region
-	while (block_list != NULL) {
-		printfmt("iterating a block...\n");
-		struct region *block_best_fitting_region =
-				region_best_fit(block_list, size);
-		
-		if(!block_best_fitting_region){
-			printfmt("es NULLLL\n");
-		}
-
-		if (!best_fitting_region || (block_best_fitting_region->size < best_fitting_region->size)){
-			best_fitting_region = block_best_fitting_region;
-			//printfmt("La region de la nueva best fitting region es %d\n",best_fitting_region->size);
-		}
-
-		block_list = block_list->next;
-	}
-
-	return best_fitting_region;
-}
 
 size_t calcular_memoria_restante_region(struct region* region){
 	struct region* auxiliar = region;
@@ -166,16 +69,128 @@ int memoria_restante_en_bloque(){
 	}
 }
 
+// finds the next free region
+// that holds the requested size
+//
+
+// Finds the first region within a block that can hold at least size bytes
 static struct region *
-find_free_region(size_t size)
-{	
-	printfmt("El size pedido para el malloc es %d y me queda %i memoria disponible en el bloque\n",size,memoria_restante_en_bloque());
-	if((int)size > memoria_restante_en_bloque()){
+region_first_fist(struct block *block, size_t size)
+{
+	struct region *act = block->first_region;
+	
+	while (act != NULL) {
+		if (act->size >= size && act->free == true) {
+			printfmt("ENCONTREE UNA REGIONNN\n");
+			act->free = false;
+			return act;
+		}
+		act = act->next;
+	}
+
+	return NULL;
+}
+
+// Finds the best fitted region within a block that can hold at least size bytes
+static struct region *
+first_fit(struct block *block_list, size_t size)
+{
+	if(!block_list){
+		printfmt("EL BLOQUE ES NULOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO\n");
+	}
+
+	//printfmt("El size pedido para el malloc es %d y me queda %i memoria disponible en el bloque\n",size,memoria_restante_en_bloque());
+	if((int)size > calcular_memoria_restante(block_list)){
 		printfmt("NO QUEDA MAS MEMORIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n");
 		return NULL;
 	}
-	struct region *fitting_region = NULL;  // Should never be NULL
 
+	struct region *first_fitting_region = NULL;
+	while (block_list != NULL) {
+		first_fitting_region = region_first_fist(block_list, size);
+		if(!first_fitting_region){
+			printfmt("LA REGION ES NULOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO\n");
+		}
+		if (first_fitting_region != NULL)
+			return first_fitting_region;
+
+		block_list = block_list->next;
+	}
+
+	return NULL;
+}
+
+static struct region *
+region_best_fit(struct block *block, size_t size)
+{
+	struct region *act = block->first_region;
+
+	if(!act->next){
+		printfmt("La region es NULLLL");
+	}
+	struct region *best_fit = NULL;
+	while (act != NULL) {
+		printfmt("El size actual del bloque es %d\n",act->size);
+		if(!act->free){
+			printfmt("La region con size %d esta ocupada\n",act->size);
+		}
+		if (act->free && act->size >= size) {
+			printfmt("ASDFASDFASJDKHFKJSDregion is free and has enought size: %d\n",act->size);
+			if (!best_fit) {
+				printfmt("best fit hasn't been set yet\n");
+				best_fit = act;
+			} else if (act->size < best_fit->size) {
+				// printfmt("actual size is better fit than actual best\n");
+				printfmt("Seteo el nuevo best fit, cuyo tamaño va a ser %d\n",act->size);
+				best_fit = act;
+				//printfmt("El nuevo best fit en region es %d\n",best_fit->size);
+			}
+		}  // else
+		   //  printfmt("region is not free or is already in use\n");
+		act = act->next;
+	}
+
+	return best_fit;
+}
+
+static struct region *
+best_fit(struct block *block_list, size_t size)
+{
+	if((int)size > calcular_memoria_restante(block_list)){
+		printfmt("NO QUEDA MAS MEMORIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n");
+		return NULL;
+	}
+	struct region *best_fitting_region = NULL;
+
+	// we have to go through all blocks in case
+	// region next is of smaller size than act region
+	while (block_list != NULL) {
+		printfmt("iterating a block...\n");
+		struct region *block_best_fitting_region =
+				region_best_fit(block_list, size);
+		
+		if(!block_best_fitting_region){
+			printfmt("es NULLLL\n");
+		}
+
+		if (!best_fitting_region || (block_best_fitting_region->size < best_fitting_region->size)){
+			best_fitting_region = block_best_fitting_region;
+			//printfmt("La region de la nueva best fitting region es %d\n",best_fitting_region->size);
+		}
+
+		block_list = block_list->next;
+	}
+
+	return best_fitting_region;
+}
+
+
+
+static struct region *
+find_free_region(size_t size)
+{	
+	struct region *fitting_region = NULL;  // Should never be NULL
+	
 #ifdef BEST_FIT
 		if (size <= SMALL_BLOCK_SIZE) {
 				printfmt("ENTRAAAAA EN SMALL LISTTTTT\n");
@@ -212,10 +227,15 @@ find_free_region(size_t size)
 			fitting_region = first_fit(small_size_block_list, size);
 				if (fitting_region != NULL){
 					return fitting_region;
+				}else{
+					printfmt("no se encontro una region en small size busco en medium size\n");
 				}
 				fitting_region = first_fit(medium_size_block_list, size);
-				if (fitting_region != NULL)
+				if (fitting_region != NULL){
 					return fitting_region;
+				}else{
+					printfmt("no se encontro una region en medium size busco en large size\n");
+				}
 
 				fitting_region = first_fit(large_size_block_list, size);
 
@@ -242,9 +262,9 @@ void
 actualize_block_list(struct block *new_block, struct block **block_list)
 {
 	// The insertion is made in the beginning so this operation is O(1)
-	if (block_list == NULL) {
-		printfmt("Block list es null");
-		block_list = new_block;
+	if (*block_list == NULL) {
+		printfmt("Block list es null----------------------------------------------------------------------------\n");
+		*block_list = new_block;
 		return;
 	}
 
@@ -514,7 +534,6 @@ malloc(size_t size)
 	next = find_free_region(size);
 
 	if (!next) {
-		printfmt("Tengo que crear un nuevo bloque \n");
 		size_t block_size = determine_block_size(size);
 		memory_being_use += block_size;
 		next = grow_heap(block_size);
@@ -591,9 +610,43 @@ calloc(size_t nmemb, size_t size)
 void *
 realloc(void *ptr, size_t size)
 {
-	// Your code here
+	//Si ptr es igual a NULL, el comportamiento es igual a malloc(size)
+	if (ptr == NULL) {
+        return malloc(size);
+    }
 
-	return NULL;
+	//Si size es igual a cero (y ptr no es NULL) debería ser equivalente a free(ptr)
+    if (size == 0) {
+        free(ptr);
+		errno = ENOMEM;
+        return NULL;
+    }
+
+    struct region* old_region = PTR2REGION(ptr);
+
+    if (old_region == NULL) {
+        // ptr no fue pedido con malloc
+		errno = ENOMEM;
+        return NULL;
+    }
+
+    size_t old_size = old_region->size;
+
+    if (old_size >= size) {
+        // la región actual tiene suficiente tamaño para la nueva solicitud
+        return ptr;
+    }
+
+    void* new_ptr = malloc(size);
+
+    if (new_ptr == NULL) {
+        // fallo la asignación de memoria, devolvemos ptr sin modificar
+        return ptr;
+    }
+
+    memcpy(new_ptr, ptr, old_size);
+    free(ptr);
+    return new_ptr;
 }
 
 void
