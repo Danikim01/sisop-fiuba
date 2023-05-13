@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <errno.h>
 
 #include "testlib.h"
 #include "malloc.h"
@@ -346,28 +347,11 @@ correct_best_fit_various_regions(void)
 	free(var8);
 }
 
-static void
-correct_best_fit_various_regions_medium_block(void)
-{
-	char *var0 = malloc(700);
-	char *var1 = malloc(5000);
-	char *var2 = malloc(50000);
-	char *var3 = malloc(2381);
-	char *var4 = malloc(900);
-	char *var5 = malloc(9000);
-	char *var6 = malloc(10000);
 
-	free(var1);
-	free(var2);
-	free(var3);
-	free(var4);
-	free(var5);
-	free(var6);
-}
 
 
 static void
-test_comportamiento_bloques(void)
+test_tamaño_bloques(void)
 {
 	char *a = malloc(15000);
 	char *b = malloc(20000);
@@ -384,28 +368,107 @@ test_comportamiento_bloques(void)
 }
 
 
+void test_realloc_reduce_size(){
+    size_t initial_size = 10;
+    size_t new_size = 5;
+    int *ptr = (int *)malloc(initial_size * sizeof(int));
+    for (size_t i = 0; i < initial_size; i++) {
+        ptr[i] = i;
+    }
+    int *new_ptr = (int *)realloc(ptr, new_size * sizeof(int));
+    ASSERT_TRUE("Realloc no falla",new_ptr != NULL); // realloc no falla
+    ASSERT_TRUE("Realloc no devuelve un nuevo puntero",new_ptr == ptr); // realloc no devuelve un nuevo puntero
+    for (size_t i = 0; i < new_size; i++) {
+        ASSERT_TRUE("Se conservan los datos de la region original",new_ptr[i] == i); // se conservan los datos de la región original
+    }
+    free(new_ptr);
+}
+
+
+void test_realloc_increase_size() {
+    size_t initial_size = 5;
+    size_t new_size = 10;
+    int *ptr = (int *)malloc(initial_size * sizeof(int));
+    for (size_t i = 0; i < initial_size; i++) {
+        ptr[i] = i;
+    }
+    int *new_ptr = (int *)realloc(ptr, new_size * sizeof(int));
+    ASSERT_TRUE("Realloc no falla",new_ptr != NULL); // realloc no falla
+    ASSERT_TRUE("Realloc no devuelve un nuevo puntero",new_ptr == ptr); // realloc no devuelve un nuevo puntero
+    for (size_t i = 0; i < initial_size; i++) {
+        ASSERT_TRUE("Se conservan los datos de la region original",new_ptr[i] == i); // se conservan los datos de la región original
+    }
+    for (size_t i = initial_size; i < new_size; i++) {
+        ASSERT_TRUE("La nueva memoria no se incializa",new_ptr[i] == 0); // la memoria nueva no se inicializa
+    }
+    free(new_ptr);
+}
+
+void test_realloc_same_size() {
+    size_t size = 5;
+    int *ptr = (int *)malloc(size * sizeof(int));
+    for (size_t i = 0; i < size; i++) {
+        ptr[i] = i;
+    }
+    int *new_ptr = (int *)realloc(ptr, size * sizeof(int));
+    ASSERT_TRUE("Realloc no falla",new_ptr != NULL); // realloc no falla
+    ASSERT_TRUE("Realloc no devuelve un nuevo puntero",new_ptr == ptr); // realloc no devuelve un nuevo puntero
+    for (size_t i = 0; i < size; i++) {
+        ASSERT_TRUE("La region no se modifica al hacer realloc con mismo tamaño",new_ptr[i] == i); // la región no se modifica
+    }
+    free(new_ptr);
+}
+
+void test_realloc_null_ptr() {
+    size_t size = 10;
+    int *ptr = (int *)realloc(NULL, size * sizeof(int));
+    ASSERT_TRUE("Realloc con malloc NULL no falla",ptr != NULL); // realloc no falla
+    free(ptr);
+}
+
+void test_realloc_zero_size() {
+    size_t size = 10;
+    int *ptr = (int *)malloc(size * sizeof(int));
+    void *new_ptr = realloc(ptr, 0);
+    ASSERT_TRUE("Realloc devuelve NULL",new_ptr == NULL); 
+    ASSERT_TRUE("errno es EINVAL",errno == EINVAL); 
+    free(ptr);
+}
+
+static void
+run_realloc_tests(void){
+	print_test_name("test_realloc");
+	test_realloc_reduce_size();
+	test_realloc_increase_size();
+	test_realloc_same_size();
+	test_realloc_null_ptr();
+	test_realloc_zero_size();
+}
+
+
 int
 main(void)
 {
-	// run_test(successful_malloc_returns_non_null_pointer);
-	// run_test(correct_copied_value);
-	// run_test(correct_amount_of_mallocs);
-	// run_test(correct_amount_of_frees);
-	// run_test(correct_amount_of_requested_memory);
-	// run_test(multiple_mallocs_are_made_correctly);
-	// run_test(test_first_block_is_medium_size_if_user_asks_more_than_small_size);
-	// run_test(test_first_block_is_large_size_if_user_asks_more_than_medium_size);
-	// run_test(test_malloc_should_return_null_if_user_asks_more_than_large_size);
-	// run_test(test_deletion_of_block);
-	// run_test(test_spliting);
-	// run_test(test_coalecing);
+	run_test(successful_malloc_returns_non_null_pointer);
+	run_test(correct_copied_value);
+	run_test(correct_amount_of_mallocs);
+	run_test(correct_amount_of_frees);
+	run_test(correct_amount_of_requested_memory);
+	run_test(multiple_mallocs_are_made_correctly);
+	run_test(test_first_block_is_medium_size_if_user_asks_more_than_small_size);
+	run_test(test_first_block_is_large_size_if_user_asks_more_than_medium_size);
+	run_test(test_malloc_should_return_null_if_user_asks_more_than_large_size);
+	run_test(test_deletion_of_block);
+	run_test(test_spliting);
+	run_test(test_coalecing);
 
-	// run_test(correct_best_fit_single_region);
-
+	//Correr con make -B -e USE_BF=true
+	run_test(correct_best_fit_single_region);
 	run_test(correct_best_fit_various_regions);
-	// run_test(test_comportamiento_bloques);
+	run_test(test_tamaño_bloques);
 
-	// run_test(correct_best_fit_various_regions_medium_block);
+	//Test realloc
+	run_test(run_realloc_tests);
 
 	return 0;
 }
