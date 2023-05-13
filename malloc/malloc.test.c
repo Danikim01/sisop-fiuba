@@ -5,6 +5,12 @@
 #include "testlib.h"
 #include "malloc.h"
 
+// This is just for the print_test_name function
+#include <string.h>
+#include <unistd.h>
+#define STDOUT_FILENO 1
+//**********************************************
+
 // add by dani & jm
 #define PTR2REGION(ptr) ((struct region *) (ptr) -1)
 
@@ -16,18 +22,19 @@ print_test_name(char *test_name)
 	        length +
 	        8;  // Adjust this value according to your desired formatting
 
-	printfmt(COLOR_GREEN);
-	for (int i = 0; i < total_length; i++) {
-		printf("═");
-	}
-	printf("\n");
+	char line[total_length + 1];
+	memset(line, '=', total_length);
+	line[total_length] = '\0';
 
-	printf("TEST: %s\n", test_name);
-
-	for (int i = 0; i < total_length; i++) {
-		printf("═");
-	}
-	printf(COLOR_RESET "\n");
+	write(STDOUT_FILENO, COLOR_GREEN, strlen(COLOR_GREEN));
+	write(STDOUT_FILENO, line, total_length);
+	write(STDOUT_FILENO, "\n", 1);
+	write(STDOUT_FILENO, "TEST: ", 6);
+	write(STDOUT_FILENO, test_name, strlen(test_name));
+	write(STDOUT_FILENO, "\n", 1);
+	write(STDOUT_FILENO, line, total_length);
+	write(STDOUT_FILENO, COLOR_RESET, strlen(COLOR_RESET));
+	write(STDOUT_FILENO, "\n", 1);
 }
 
 static void
@@ -417,17 +424,17 @@ int
 main(void)
 {
 	run_test(successful_malloc_returns_non_null_pointer);
-	// run_test(correct_copied_value);
-	// run_test(correct_amount_of_mallocs);
-	// run_test(correct_amount_of_frees);
-	// run_test(correct_amount_of_requested_memory);
-	// run_test(multiple_mallocs_are_made_correctly);
-	// run_test(test_first_block_is_medium_size_if_user_asks_more_than_small_size);
-	// run_test(test_first_block_is_large_size_if_user_asks_more_than_medium_size);
-	// run_test(test_malloc_should_return_null_if_user_asks_more_than_large_size);
-	// run_test(test_deletion_of_block);
-	// run_test(test_spliting);
-	// run_test(test_coalecing);
+	run_test(correct_copied_value);
+	run_test(correct_amount_of_mallocs);
+	run_test(correct_amount_of_frees);
+	run_test(correct_amount_of_requested_memory);
+	run_test(multiple_mallocs_are_made_correctly);
+	run_test(test_first_block_is_medium_size_if_user_asks_more_than_small_size);
+	run_test(test_first_block_is_large_size_if_user_asks_more_than_medium_size);
+	run_test(test_malloc_should_return_null_if_user_asks_more_than_large_size);
+	run_test(test_deletion_of_block);
+	run_test(test_spliting);
+	run_test(test_coalecing);
 
 // Test relacionados a First Fit, recorda usar // make - B - e USE_FF = true
 // al compilar
