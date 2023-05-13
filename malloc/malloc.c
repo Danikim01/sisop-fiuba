@@ -512,7 +512,7 @@ realloc(void *ptr, size_t size)
 	//  |header|                    | header|                    |
 	//  |header|              |     | header|                    |
 	//
-	//  if (size <= sizeof(struct region)) return NULL; 
+	//  if (size <= sizeof(struct region)) return NULL;
 	//  O simplemente no hacer nada
 	//  else call splitting function with struct region of the header to the left
 	//
@@ -548,8 +548,9 @@ realloc(void *ptr, size_t size)
 	size_t old_size = old_region->size;
 
 	// REG: si size es mas chico que old_size tiene que achicar la region
-	// "The realloc function can be used to resize a memory block to either a larger or smaller size"
-	// JM:  what happends if contents need more space than the desired new size?
+	// "The realloc function can be used to resize a memory block to either
+	// a larger or smaller size" JM:  what happends if contents need more
+	// space than the desired new size?
 	if (size < old_size) {
 		return split_free_regions(old_region, size);
 	}
