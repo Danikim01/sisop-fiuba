@@ -11,11 +11,23 @@
 static void
 print_test_name(char *test_name)
 {
-	printfmt(COLOR_GREEN
-	         "\n══════════════════════════════════════════\n" COLOR_RESET);
-	printfmt(COLOR_GREEN "TEST: %s" COLOR_RESET, test_name);
-	printfmt(COLOR_GREEN
-	         "\n══════════════════════════════════════════ \n" COLOR_RESET);
+	int length = strlen(test_name);
+	int total_length =
+	        length +
+	        8;  // Adjust this value according to your desired formatting
+
+	printfmt(COLOR_GREEN);
+	for (int i = 0; i < total_length; i++) {
+		printf("═");
+	}
+	printf("\n");
+
+	printf("TEST: %s\n", test_name);
+
+	for (int i = 0; i < total_length; i++) {
+		printf("═");
+	}
+	printf(COLOR_RESET "\n");
 }
 
 static void
@@ -313,6 +325,9 @@ test_first_fit_returns_first_adequate_region(void)
 	free(var6);
 }
 
+// Reg: mantene el estandar del archivo, si todos los nombres de las
+// funciones test arrancan con "test" mantenelo, tambien si arrancan
+// llamando a print_test_name([nombre del test])
 static void
 correct_best_fit_single_region(void)
 {
@@ -337,6 +352,7 @@ correct_best_fit_single_region(void)
 #endif
 }
 
+// Este test no tiene ningun Assert.
 static void
 correct_best_fit_various_regions(void)
 {
