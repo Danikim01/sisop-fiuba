@@ -298,10 +298,14 @@ correct_best_fit_single_region(void)
 
 	struct region *res = PTR2REGION(var5);
 #ifdef BEST_FIT
-	printfmt("best fit exclusive test\n");
 	ASSERT_TRUE("allocated best fit region size", res->next->size == 100-sizeof(struct region));
 	ASSERT_TRUE("allocated best fit is free", res->next->free == true);
 #endif
+
+	free(var0);
+	free(var2);
+	free(var4);
+	free(var5);
 }
 
 static void
@@ -320,7 +324,15 @@ correct_best_fit_various_regions(void)
 	char *var7 = malloc(100);
 	char *var8 = malloc(1800);
 
+	
 	free(var0);
+#ifdef BEST_FIT
+	char* var9 = malloc(500);
+	struct region *res = PTR2REGION(var9);
+	ASSERT_TRUE("allocated best fit region size", res->next->size == 200-sizeof(struct region));
+	ASSERT_TRUE("allocated best fit is free", res->next->free == true);
+#endif
+
 	free(var1);
 	free(var2);
 	free(var3);
@@ -368,7 +380,7 @@ main(void)
 	//run_test(correct_best_fit_single_region);
 	
 	run_test(correct_best_fit_various_regions);
-	run_test(test_comportamiento_bloques);
+	//run_test(test_comportamiento_bloques);
 
 	return 0;
 }

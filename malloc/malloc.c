@@ -47,8 +47,8 @@ region_first_fist(struct block *block, size_t size)
 	struct region *act = block->first_region;
 	while (act != NULL) {
 		if (act->size >= size && act->free == true) {
+			printfmt("ENCONTREE UNA REGIONNN\n");
 			act->free = false;
-
 			return act;
 		}
 		act = act->next;
@@ -134,9 +134,46 @@ best_fit(struct block *block_list, size_t size)
 	return best_fitting_region;
 }
 
+size_t calcular_memoria_restante_region(struct region* region){
+	struct region* auxiliar = region;
+	size_t memoria = 0;
+	while(auxiliar){
+		if(auxiliar->free){
+			memoria += auxiliar->size;
+		}
+		auxiliar=auxiliar->next;
+	}
+	return memoria;
+}
+
+int calcular_memoria_restante(struct block* bloque){
+	struct block* auxiliar = bloque;
+	size_t memoria = 0;
+	while(auxiliar){
+		memoria += calcular_memoria_restante_region(auxiliar->first_region);
+		auxiliar = auxiliar->next;
+	}
+	return memoria;
+}
+
+int memoria_restante_en_bloque(){
+	if(small_size_block_list != NULL){
+		return calcular_memoria_restante(small_size_block_list);
+	}else if(medium_size_block_list){
+		return calcular_memoria_restante(medium_size_block_list);
+	}else if(large_size_block_list){
+		return calcular_memoria_restante(large_size_block_list);
+	}
+}
+
 static struct region *
 find_free_region(size_t size)
-{
+{	
+	printfmt("El size pedido para el malloc es %d y me queda %i memoria disponible en el bloque\n",size,memoria_restante_en_bloque());
+	if((int)size > memoria_restante_en_bloque()){
+		printfmt("NO QUEDA MAS MEMORIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n");
+		return NULL;
+	}
 	struct region *fitting_region = NULL;  // Should never be NULL
 
 #ifdef BEST_FIT
@@ -171,6 +208,7 @@ find_free_region(size_t size)
 
 #ifdef FIRST_FIT
 	if (size <= SMALL_BLOCK_SIZE) {
+			printfmt("El size es mas chico que SMALL BLOCK SIZE\n");
 			fitting_region = first_fit(small_size_block_list, size);
 				if (fitting_region != NULL){
 					return fitting_region;
@@ -182,7 +220,7 @@ find_free_region(size_t size)
 				fitting_region = first_fit(large_size_block_list, size);
 
 	} else if (size <= MEDIUM_BLOCK_SIZE) {
-
+				printfmt("El size es mas chico que MEDIUM BLOCK SIZE\n");
 				fitting_region = first_fit(medium_size_block_list, size);
 				if (fitting_region != NULL)
 					return fitting_region;
@@ -190,6 +228,7 @@ find_free_region(size_t size)
 				fitting_region = first_fit(large_size_block_list, size);
 
 			} else {
+				printfmt("El size es mas chico que LARGE BLOCK SIZE\n");
 				fitting_region = first_fit(large_size_block_list, size);
 		}			
 #endif
@@ -204,6 +243,7 @@ actualize_block_list(struct block *new_block, struct block **block_list)
 {
 	// The insertion is made in the beginning so this operation is O(1)
 	if (block_list == NULL) {
+		printfmt("Block list es null");
 		block_list = new_block;
 		return;
 	}
@@ -245,11 +285,13 @@ grow_heap(size_t block_size)
 
 	switch (block_size) {
 	case SMALL_BLOCK_SIZE:
+		printfmt("Se crea un bloque de tamaño small\n");
 		actualize_block_list(new_block, &small_size_block_list);
 		amount_of_small_blocks += 1;
 
 		break;
 	case MEDIUM_BLOCK_SIZE:
+	printfmt("Se crea un bloque de tamaño medium\n");
 		actualize_block_list(new_block, &medium_size_block_list);
 		amount_of_medium_blocks += 1;
 
@@ -271,7 +313,6 @@ split_free_regions(struct region *region_to_split, size_t desired_size)
 	// TODO: Check if it makes sense to split if the desired size is big
 	// compared to the region. If if have 100 bytes and they ask me for 99,
 	// does it make sense to split?
-	printfmt("La region a splitear tiene tamañooo %d\n",region_to_split->size);
 	// Check if the region_to_split can be split
 	if (region_to_split->size > desired_size) {
 		size_t prev_region_size = region_to_split->size;
@@ -473,6 +514,7 @@ malloc(size_t size)
 	next = find_free_region(size);
 
 	if (!next) {
+		printfmt("Tengo que crear un nuevo bloque \n");
 		size_t block_size = determine_block_size(size);
 		memory_being_use += block_size;
 		next = grow_heap(block_size);
@@ -486,10 +528,8 @@ malloc(size_t size)
 
 	printfmt("IMPRIMO LOS BLOQUES CHIQUITOSSS\n");
 	print_all_free_list_elements(small_size_block_list);
-	printfmt("IMPRIMO LOS BLOQUES MEDIANOSSS\n");
+	printfmt("IMPRIMO LOS BLOQUES MEDIUMMMM\n");
 	print_all_free_list_elements(medium_size_block_list);
-	printfmt("IMPRIMO LOS BLOQUES LARGOOOOS\n");
-	print_all_free_list_elements(large_size_block_list);
 	printfmt("________________________________________________________\n");
 	return REGION2PTR(next);
 }
