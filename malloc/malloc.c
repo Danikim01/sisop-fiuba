@@ -26,7 +26,7 @@
 #define MEDIUM_BLOCK_SIZE 1048576  // in bytes === 1Mib
 #define LARGE_BLOCK_SIZE 33554432  // in bytes === 32Mib
 
-#define MIN_SIZE_TO_RETURN 256  // in bytes, defined in the tp
+#define MIN_SIZE_TO_RETURN 256     // in bytes, defined in the tp
 
 struct block *small_size_block_list = NULL;
 struct block *medium_size_block_list = NULL;
@@ -101,9 +101,9 @@ int amount_of_large_blocks = 0;
 
 // Finds the first region within a block that can hold at least size bytes
 static struct region *
-region_first_fist(struct block *block, size_t size)
+region_first_fist(struct block *block_list, size_t size)
 {
-	struct region *act = block->first_region;
+	struct region *act = block_list->first_region;
 
 	while (act != NULL) {
 		if (act->size >= size && act->free == true) {
@@ -155,12 +155,12 @@ region_best_fit(struct block *block_list, size_t size)
 
 static struct region *
 best_fit(struct block *block_list, size_t size)
-{  // Cual es el punto de recorrer el blocque si despues vas a volver a recorrer la lista?
-	// Reg: ahora saquemos este llamado
-	// if ((int) size > calcular_memoria_restante(block_list)) {
-	// 	return NULL;
-	// }
-	struct region *actual_best_region = NULL;
+{  // Cual es el punto de recorrer el bloque si despues vas a volver a recorrer
+   // la lista? Reg: ahora saquemos este llamado if ((int) size >
+   // calcular_memoria_restante(block_list)) { 	return NULL;
+   // }
+
+	struct region *best_region = NULL;
 
 	// we have to go through all blocks in case
 	// region next is of smaller size than act region
@@ -169,9 +169,9 @@ best_fit(struct block *block_list, size_t size)
 	while (block_list != NULL) {
 		// Reg: no pongas bloque en el nombre de una variable que es una region
 		//  Si se entiende que es la region que mejor fitea del bloque pero a simple vista
-		// confunde, dejalo con best_fitting_region, aparte tenes best_fitting_region
+		// confunde, dejalo con candidate_best_fitting_region, aparte tenes candidate_best_fitting_region
 		// declarado arriba para que creas un nuevo puntero?
-		struct region *best_fitting_region =
+		struct region *candidate_best_fitting_region =
 		        region_best_fit(block_list, size);
 
 		// Reg: okey si vas a poner un if asi de grande con nombres de
@@ -180,15 +180,15 @@ best_fit(struct block *block_list, size_t size)
 
 		// Como justificativo me parece bien buscar la mejor region en todos los blopques
 		//  pq malloc no es exigente con temas de velocidad
-		if (!actual_best_region ||
-		    (best_fitting_region->size < actual_best_region->size)) {
-			actual_best_region = actual_best_region;
+		if (!best_region ||
+		    (candidate_best_fitting_region->size < best_region->size)) {
+			best_region = candidate_best_fitting_region;
 		}
 
 		block_list = block_list->next;
 	}
 
-	return actual_best_region;
+	return best_region;
 }
 
 static struct region *
@@ -198,53 +198,78 @@ find_free_region(size_t size)
 
 #ifdef BEST_FIT
 	if (size <= SMALL_BLOCK_SIZE) {
-		fitting_region = best_fit(small_size_block_list, size);
-
-		if (fitting_region != NULL) {
-			return fitting_region;
+		if (small_size_block_list != NULL) {
+			fitting_region = best_fit(small_size_block_list, size);
+			if (fitting_region != NULL) {
+				return fitting_region;
+			}
+		}
+		if (medium_size_block_list != NULL) {
+			fitting_region = best_fit(medium_size_block_list, size);
+			if (fitting_region != NULL) {
+				return fitting_region;
+			}
 		}
 
-		fitting_region = best_fit(medium_size_block_list, size);
-
-		if (fitting_region != NULL)
-			return fitting_region;
-
-		fitting_region = best_fit(large_size_block_list, size);
+		if (large_size_block_list != NULL) {
+			fitting_region = best_fit(large_size_block_list, size);
+		}
 
 	} else if (size <= MEDIUM_BLOCK_SIZE) {
-		fitting_region = best_fit(medium_size_block_list, size);
+		if (medium_size_block_list != NULL) {
+			fitting_region = best_fit(medium_size_block_list, size);
+			if (fitting_region != NULL) {
+				return fitting_region;
+			}
+		}
 
-		if (fitting_region != NULL)
-			return fitting_region;
-
-		fitting_region = best_fit(large_size_block_list, size);
+		if (large_size_block_list != NULL) {
+			fitting_region = best_fit(large_size_block_list, size);
+		}
 
 	} else {
-		fitting_region = best_fit(large_size_block_list, size);
+		if (large_size_block_list != NULL) {
+			fitting_region = best_fit(large_size_block_list, size);
+		}
 	}
 #endif
 
 #ifdef FIRST_FIT
 	if (size <= SMALL_BLOCK_SIZE) {
-		fitting_region = first_fit(small_size_block_list, size);
-		if (fitting_region != NULL) {
-			return fitting_region;
+		if (small_size_block_list != NULL) {
+			fitting_region = first_fit(small_size_block_list, size);
+			if (fitting_region != NULL) {
+				return fitting_region;
+			}
 		}
-		fitting_region = first_fit(medium_size_block_list, size);
-		if (fitting_region != NULL) {
-			return fitting_region;
+
+		if (medium_size_block_list != NULL) {
+			fitting_region = first_fit(medium_size_block_list, size);
+			if (fitting_region != NULL) {
+				return fitting_region;
+			}
 		}
-		fitting_region = first_fit(large_size_block_list, size);
+
+		if (large_size_block_list != NULL) {
+			fitting_region = first_fit(large_size_block_list, size);
+		}
 
 	} else if (size <= MEDIUM_BLOCK_SIZE) {
-		fitting_region = first_fit(medium_size_block_list, size);
-		if (fitting_region != NULL)
-			return fitting_region;
+		if (medium_size_block_list != NULL) {
+			fitting_region = first_fit(medium_size_block_list, size);
+			if (fitting_region != NULL) {
+				return fitting_region;
+			}
+		}
 
-		fitting_region = first_fit(large_size_block_list, size);
+		if (large_size_block_list != NULL) {
+			fitting_region = first_fit(large_size_block_list, size);
+		}
 
 	} else {
-		fitting_region = first_fit(large_size_block_list, size);
+		if (large_size_block_list != NULL) {
+			fitting_region = first_fit(large_size_block_list, size);
+		}
 	}
 #endif
 	// If you get to the end of the free list then you couldn't find the region you needed then
@@ -523,7 +548,6 @@ malloc(size_t size)
 	// updates statistics
 	amount_of_mallocs++;
 	requested_memory += size;
-
 
 	next = find_free_region(size);
 

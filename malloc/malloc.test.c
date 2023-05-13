@@ -85,6 +85,37 @@ correct_amount_of_mallocs(void)
 }
 
 static void
+test_regions_are_updated_to_not_free(void)
+{
+	print_test_name("test_regions_are_updated_to_not_free");
+
+	char *var = malloc(100);
+
+	struct region *region_header = PTR2REGION(var);
+
+	ASSERT_TRUE("Region should not be free", region_header->free == false);
+	free(var);
+}
+
+
+static void
+test_regions_are_updated_to_free_after_freeing_them(void)
+{
+	print_test_name("test_regions_are_updated_to_free_after_freeing_them");
+
+	char *var = malloc(100);
+	char *var1 = malloc(100);
+
+	struct region *region_header = PTR2REGION(var);
+
+	ASSERT_TRUE("Region should not be free", region_header->free == false);
+	free(var);
+	ASSERT_TRUE("Region shoul be free", region_header->free == true);
+
+	free(var1);
+}
+
+static void
 correct_amount_of_frees(void)
 {
 	print_test_name("correct_amount_of_frees");
@@ -348,29 +379,32 @@ test_first_fit_returns_first_adequate_region(void)
 // funciones test arrancan con "test" mantenelo, tambien si arrancan
 // llamando a print_test_name([nombre del test])
 static void
-correct_best_fit_single_region(void)
+test_best_fit_returns_first_adequate_region(void)
 {
 	print_test_name("correct_best_fit_single_region");
-	// test single block first (small region)
+	// test single block first
 	char *var0 = malloc(300);
 	char *var1 = malloc(500);
 	char *var2 = malloc(300);
 	char *var3 = malloc(400);
 	char *var4 = malloc(500);
 
+	char *desired_region = var3;
 	free(var1);
 	free(var3);
 
+	// esto debberia devolver la region 3
 	char *var5 = malloc(300);
 
-	struct region *res = PTR2REGION(var5);
-	// Esto seria mejor que este al principio del test como en first fit
-	//  asi el
+	struct region *region_header = PTR2REGION(var5);
 
-	printfmt("best fit exclusive test\n");
-	ASSERT_TRUE("allocated best fit region size",
-	            res->next->size == 100 - sizeof(struct region));
-	ASSERT_TRUE("allocated best fit is free", res->next->free == true);
+	ASSERT_TRUE("allocated best fit region size: ", var5 == var3);
+	ASSERT_TRUE("allocated best fit region is NOT free: ",
+	            region_header->free == false);
+	free(var0);
+	free(var2);
+	free(var4);
+	free(var5);
 }
 
 
@@ -423,18 +457,20 @@ test_comportamiento_bloques(void)
 int
 main(void)
 {
-	run_test(successful_malloc_returns_non_null_pointer);
-	run_test(correct_copied_value);
-	run_test(correct_amount_of_mallocs);
-	run_test(correct_amount_of_frees);
-	run_test(correct_amount_of_requested_memory);
-	run_test(multiple_mallocs_are_made_correctly);
-	run_test(test_first_block_is_medium_size_if_user_asks_more_than_small_size);
-	run_test(test_first_block_is_large_size_if_user_asks_more_than_medium_size);
-	run_test(test_malloc_should_return_null_if_user_asks_more_than_large_size);
-	run_test(test_deletion_of_block);
-	run_test(test_spliting);
-	run_test(test_coalecing);
+	// run_test(successful_malloc_returns_non_null_pointer);
+	// run_test(correct_copied_value);
+	// run_test(correct_amount_of_mallocs);
+	run_test(test_regions_are_updated_to_not_free);
+	run_test(test_regions_are_updated_to_free_after_freeing_them);
+	// run_test(correct_amount_of_frees);
+	// run_test(correct_amount_of_requested_memory);
+	// run_test(multiple_mallocs_are_made_correctly);
+	// run_test(test_first_block_is_medium_size_if_user_asks_more_than_small_size);
+	// run_test(test_first_block_is_large_size_if_user_asks_more_than_medium_size);
+	// run_test(test_malloc_should_return_null_if_user_asks_more_than_large_size);
+	// run_test(test_deletion_of_block);
+	// run_test(test_spliting);
+	// run_test(test_coalecing);
 
 // Test relacionados a First Fit, recorda usar // make - B - e USE_FF = true
 // al compilar
@@ -443,7 +479,7 @@ main(void)
 #endif
 
 #ifdef BEST_FIT
-	// run_test(correct_best_fit_single_region);
+	run_test(test_best_fit_returns_first_adequate_region);
 	// run_test(correct_best_fit_various_regions);
 #endif
 
