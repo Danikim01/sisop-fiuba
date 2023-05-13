@@ -26,7 +26,7 @@
 #define MEDIUM_BLOCK_SIZE 1048576  // in bytes === 1Mib
 #define LARGE_BLOCK_SIZE 33554432  // in bytes === 32Mib
 
-#define MIN_SIZE_TO_RETURN 256     // in bytes, defined in the tp
+#define MIN_SIZE_TO_RETURN 256  // in bytes, defined in the tp
 
 struct block *small_size_block_list = NULL;
 struct block *medium_size_block_list = NULL;
@@ -40,64 +40,6 @@ int amount_of_regions = 0;
 int amount_of_small_blocks = 0;
 int amount_of_medium_blocks = 0;
 int amount_of_large_blocks = 0;
-
-
-// Reg: Let's first remove this unnecesary methods
-//  size_t
-//  calcular_memoria_restante_region(struct region *region)
-//  {
-//  	struct region *auxiliar = region;
-//  	size_t memoria = 0;
-//  	while (auxiliar) {
-//  		if (auxiliar->free) {
-//  			memoria += auxiliar->size;
-//  		}
-//  		auxiliar = auxiliar->next;
-//  	}
-//  	return memoria;
-//  }
-
-// int
-// // bloque no es un nombre bueno porque NO es el bloque es la LISTA de bloques
-// calcular_memoria_restante(struct block *bloque)
-// {
-// 	struct block *auxiliar = bloque;
-// 	size_t memoria = 0;
-// 	while (auxiliar) {
-// 		// REG: Osea que ya calcular_memoria_restante es O(n)
-// 		// REG: y desp llamas una funcion que es O(m)?
-// 		// REG: osea que todo esto ya es O(n^2)
-// 		memoria +=
-// 		        calcular_memoria_restante_region(auxiliar->first_region);
-// 		auxiliar = auxiliar->next;
-// 	}
-// 	return memoria;
-// }
-
-
-// REG: PQ MODIFICARON ESTO? YA ESTABA BIEN Y ERA MAS SIMPLE
-// NO MODIFIQUES CODIGO AJENO SIN PEDIR PERMISO!
-//  Finds the best fitted region within a block that can hold at least size bytes
-//  static struct region *
-//  first_fit(struct block *block_list, size_t size)
-//  {
-//  	// printfmt("El size pedido para el malloc es %d y me queda %i memoria
-//  	// disponible en el bloque\n",size,memoria_restante_en_bloque());
-//  	if ((int) size > calcular_memoria_restante(block_list)) {
-//  		return NULL;
-//  	}
-
-// 	struct region *first_fitting_region = NULL;
-// 	while (block_list != NULL) {
-// 		first_fitting_region = region_first_fist(block_list, size);
-// 		if (first_fitting_region != NULL)
-// 			return first_fitting_region;
-
-// 		block_list = block_list->next;
-// 	}
-
-// 	return NULL;
-// }
 
 // Finds the first region within a block that can hold at least size bytes
 static struct region *
@@ -155,28 +97,11 @@ region_best_fit(struct block *block_list, size_t size)
 
 static struct region *
 best_fit(struct block *block_list, size_t size)
-{  // Cual es el punto de recorrer el bloque si despues vas a volver a recorrer
-   // la lista? Reg: ahora saquemos este llamado if ((int) size >
-   // calcular_memoria_restante(block_list)) { 	return NULL;
-   // }
-
+{
 	struct region *best_region = NULL;
-
-	// we have to go through all blocks in case
-	// region next is of smaller size than act region
-	// REG: YA RECORRISTE LA LISTA DE BLOQUES ANTES EN
-	// "calcular_memoria_restante" ya vas O(2n^2)
 	while (block_list != NULL) {
-		// Reg: no pongas bloque en el nombre de una variable que es una region
-		//  Si se entiende que es la region que mejor fitea del bloque pero a simple vista
-		// confunde, dejalo con candidate_best_fitting_region, aparte tenes candidate_best_fitting_region
-		// declarado arriba para que creas un nuevo puntero?
 		struct region *candidate_best_fitting_region =
 		        region_best_fit(block_list, size);
-
-		// Reg: okey si vas a poner un if asi de grande con nombres de
-		// variables que no ayudan documentalo un toqque, pone que esto
-		// es para encontrar el mejor candidato en todos los bloques
 
 		// Como justificativo me parece bien buscar la mejor region en todos los blopques
 		//  pq malloc no es exigente con temas de velocidad
@@ -617,70 +542,69 @@ calloc(size_t nmemb, size_t size)
 	return NULL;
 }
 
-// void *
-// realloc(void *ptr, size_t size)
-// {
-// 	// Si ptr es igual a NULL, el comportamiento es igual a malloc(size)
-// 	if (ptr == NULL) {
-// 		return malloc(size);
-// 	}
+void *
+realloc(void *ptr, size_t size)
+{
+	// Si ptr es igual a NULL, el comportamiento es igual a malloc(size)
+	if (ptr == NULL) {
+		return malloc(size);
+	}
 
-// 	// Si size es igual a cero (y ptr no es NULL) debería ser equivalente a free(ptr)
-// 	if (size == 0) {
-// 		free(ptr);
-// 		// REG: no es realmente necesario pq pasarle size 0 a realloc no es tecnicamente un
-// 		//  error si el comportamiento esperado es que llame a free.
-// 		errno = EINVAL;  // EINVAL es un código de error en sistemas Unix
-// 		                 // y similares que indica que un argumento proporcionado
-// 		                 // a una función es inválido o no es compatible
-// 		return NULL;
-// 	}
+	// Si size es igual a cero (y ptr no es NULL) debería ser equivalente a free(ptr)
+	if (size == 0) {
+		free(ptr);
+		// REG: no es realmente necesario pq pasarle size 0 a realloc no es tecnicamente un
+		//  error si el comportamiento esperado es que llame a free.
+		errno = EINVAL;  // EINVAL es un código de error en sistemas Unix
+		                 // y similares que indica que un argumento proporcionado
+		                 // a una función es inválido o no es compatible
+		return NULL;
+	}
 
-// 	struct region *old_region = PTR2REGION(ptr);
+	struct region *old_region = PTR2REGION(ptr);
 
-// 	if (old_region == NULL) {
-// 		// ptr no fue pedido con malloc
-// 		errno = ENOMEM;
-// 		return NULL;
-// 	}
+	if (old_region == NULL) {
+		// ptr no fue pedido con malloc
+		errno = ENOMEM;
+		return NULL;
+	}
 
-// 	size_t old_size = old_region->size;
+	size_t old_size = old_region->size;
 
-// 	// REG: si size es mas chico que old_size tiene que achicar la region
-// 	//"The realloc function can be used to resize a memory block to either a
-// larger or smaller size" 	if (old_size >= size) {
-// 		// la región actual tiene suficiente tamaño para la nueva
-// solicitud 		return ptr;
-// 	}
+	// REG: si size es mas chico que old_size tiene que achicar la region
+	//"The realloc function can be used to resize a memory block to either a larger or smaller size"
+	if (old_size >= size) {
+		// la región actual tiene suficiente tamaño para la nueva solicitud
+		return ptr;
+	}
 
-// 	void *new_ptr = malloc(size);
+	void *new_ptr = malloc(size);
 
-// 	if (new_ptr == NULL) {
-// 		// fallo la asignación de memoria, devolvemos ptr sin modificar
-// 		return ptr;
-// 	}
+	if (new_ptr == NULL) {
+		// fallo la asignación de memoria, devolvemos ptr sin modificar
+		return ptr;
+	}
 
-// 	// Reg: regarding using old_size in memcpy
-// 	//  we have 2 potencial cases:
-// 	//  - we are using realloc to to resize a memory block to a larger size
-// 	//  - we are using realloc to to resize a memory block to a smaller size
+	// Reg: regarding using old_size in memcpy
+	//  we have 2 potencial cases:
+	//  - we are using realloc to to resize a memory block to a larger size
+	//  - we are using realloc to to resize a memory block to a smaller size
 
-// 	// in the first case since the new memory block is bigger than the previous
-// 	// one we should copy all the contents of the previous memory block, so we use old_size in memcpy
+	// in the first case since the new memory block is bigger than the previous
+	// one we should copy all the contents of the previous memory block, so we use old_size in memcpy
 
-// 	// in the first case since the new memory block is smalelr than the
-// 	// previous one we should copy only the contents of the previous memory
-// 	// block until the new size of the block, so if the original block was
-// 	// 20 bytes and the new_one with realloc is only 10 we should then just
-// 	// copy the first 10 bytes of the original block
-// 	// we could use something like this:
-// 	// memcpy(new_ptr, ptr, (old_size < size) ? old_size : size);
+	// in the first case since the new memory block is smalelr than the
+	// previous one we should copy only the contents of the previous memory
+	// block until the new size of the block, so if the original block was
+	// 20 bytes and the new_one with realloc is only 10 we should then just
+	// copy the first 10 bytes of the original block
+	// we could use something like this:
+	// memcpy(new_ptr, ptr, (old_size < size) ? old_size : size);
 
-// 	memcpy(new_ptr, ptr, old_size);
-// 	free(ptr);
-// 	return new_ptr;
-// }
-
+	memcpy(new_ptr, ptr, old_size);
+	free(ptr);
+	return new_ptr;
+}
 void
 get_stats(struct malloc_stats *stats)
 {
