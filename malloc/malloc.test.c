@@ -298,7 +298,8 @@ correct_best_fit_single_region(void)
 
 	struct region *res = PTR2REGION(var5);
 #ifdef BEST_FIT
-	ASSERT_TRUE("allocated best fit region size", res->next->size == 100-sizeof(struct region));
+	ASSERT_TRUE("allocated best fit region size",
+	            res->next->size == 100 - sizeof(struct region));
 	ASSERT_TRUE("allocated best fit is free", res->next->free == true);
 #endif
 
@@ -319,17 +320,18 @@ correct_best_fit_various_regions(void)
 
 	char *var5 = malloc(800);
 	char *var6 = malloc(3000);
-	
-	
+
+
 	char *var7 = malloc(100);
 	char *var8 = malloc(1800);
 
-	
+
 	free(var0);
 #ifdef BEST_FIT
-	char* var9 = malloc(500);
+	char *var9 = malloc(500);
 	struct region *res = PTR2REGION(var9);
-	ASSERT_TRUE("allocated best fit region size", res->next->size == 200-sizeof(struct region));
+	ASSERT_TRUE("allocated best fit region size",
+	            res->next->size == 200 - sizeof(struct region));
 	ASSERT_TRUE("allocated best fit is free", res->next->free == true);
 #endif
 
@@ -337,7 +339,7 @@ correct_best_fit_various_regions(void)
 	free(var2);
 	free(var3);
 	free(var4);
-	
+
 	free(var5);
 	free(var6);
 	free(var7);
@@ -350,8 +352,8 @@ correct_best_fit_various_regions_medium_block(void)
 	char *var0 = malloc(700);
 	char *var1 = malloc(5000);
 	char *var2 = malloc(50000);
-	char* var3 = malloc(2381);
-	char* var4 = malloc(900);
+	char *var3 = malloc(2381);
+	char *var4 = malloc(900);
 	char *var5 = malloc(9000);
 	char *var6 = malloc(10000);
 
@@ -361,22 +363,22 @@ correct_best_fit_various_regions_medium_block(void)
 	free(var4);
 	free(var5);
 	free(var6);
-	
 }
 
 
 static void
-test_comportamiento_bloques(void){
-	char* a = malloc(15000);
-	char* b = malloc(20000);
-	
+test_comportamiento_bloques(void)
+{
+	char *a = malloc(15000);
+	char *b = malloc(20000);
+
 	struct region *a_region = PTR2REGION(a);
 	struct region *b_region = PTR2REGION(b);
 
-	ASSERT_TRUE("bloque a con tamaño correcto", a_region->size==15000);
+	ASSERT_TRUE("bloque a con tamaño correcto", a_region->size == 15000);
 
-	ASSERT_TRUE("bloque b con tamaño correcto", b_region->size==20000);
-	
+	ASSERT_TRUE("bloque b con tamaño correcto", b_region->size == 20000);
+
 	free(a);
 	free(b);
 }
@@ -397,13 +399,13 @@ main(void)
 	// run_test(test_deletion_of_block);
 	// run_test(test_spliting);
 	// run_test(test_coalecing);
-	
-	//run_test(correct_best_fit_single_region);
-	
-	run_test(correct_best_fit_various_regions);
-	//run_test(test_comportamiento_bloques);
 
-	//run_test(correct_best_fit_various_regions_medium_block);
+	// run_test(correct_best_fit_single_region);
+
+	run_test(correct_best_fit_various_regions);
+	// run_test(test_comportamiento_bloques);
+
+	// run_test(correct_best_fit_various_regions_medium_block);
 
 	return 0;
 }
