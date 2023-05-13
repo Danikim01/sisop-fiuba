@@ -80,6 +80,9 @@ static struct region *
 // sacando eso esta bien esto
 region_best_fit(struct block *block_list, size_t size)
 {
+	if (!block_list)
+		return NULL;
+
 	struct region *act = block_list->first_region;
 	struct region *best_fit = NULL;
 	while (act != NULL) {
