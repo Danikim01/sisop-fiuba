@@ -292,7 +292,7 @@ test_coalecing(void)
 	ASSERT_TRUE("Amount of regions should be 0: ",
 	            stats.amount_of_regions == 0);
 }
-
+#ifdef FIRST_FIT
 static void
 test_first_fit_returns_first_adequate_region(void)
 {
@@ -324,6 +324,7 @@ test_first_fit_returns_first_adequate_region(void)
 	free(var5);
 	free(var6);
 }
+#endif
 
 // Reg: mantene el estandar del archivo, si todos los nombres de las
 // funciones test arrancan con "test" mantenelo, tambien si arrancan
@@ -344,6 +345,8 @@ correct_best_fit_single_region(void)
 	char *var5 = malloc(300);
 
 	struct region *res = PTR2REGION(var5);
+	// Esto seria mejor que este al principio del test como en first fit
+	//  asi el
 #ifdef BEST_FIT
 	printfmt("best fit exclusive test\n");
 	ASSERT_TRUE("allocated best fit region size",
@@ -398,20 +401,24 @@ test_comportamiento_bloques(void)
 int
 main(void)
 {
-	// run_test(successful_malloc_returns_non_null_pointer);
-	// run_test(correct_copied_value);
-	// run_test(correct_amount_of_mallocs);
-	// run_test(correct_amount_of_frees);
-	// run_test(correct_amount_of_requested_memory);
-	// run_test(multiple_mallocs_are_made_correctly);
-	// run_test(test_first_block_is_medium_size_if_user_asks_more_than_small_size);
-	// run_test(test_first_block_is_large_size_if_user_asks_more_than_medium_size);
-	// run_test(test_malloc_should_return_null_if_user_asks_more_than_large_size);
-	// run_test(test_deletion_of_block);
-	// run_test(test_spliting);
-	// run_test(test_coalecing);
+// run_test(successful_malloc_returns_non_null_pointer);
+// run_test(correct_copied_value);
+// run_test(correct_amount_of_mallocs);
+// run_test(correct_amount_of_frees);
+// run_test(correct_amount_of_requested_memory);
+// run_test(multiple_mallocs_are_made_correctly);
+// run_test(test_first_block_is_medium_size_if_user_asks_more_than_small_size);
+// run_test(test_first_block_is_large_size_if_user_asks_more_than_medium_size);
+// run_test(test_malloc_should_return_null_if_user_asks_more_than_large_size);
+// run_test(test_deletion_of_block);
+// run_test(test_spliting);
+// run_test(test_coalecing);
 
+// Test relacionados a First Fit, recorda usar // make - B - e USE_FF = true
+// al compilar
+#ifdef FIRST_FIT
 	run_test(test_first_fit_returns_first_adequate_region);
+#endif
 	// run_test(correct_best_fit_single_region);
 
 	// run_test(correct_best_fit_various_regions);
