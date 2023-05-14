@@ -26,7 +26,7 @@
 #define MEDIUM_BLOCK_SIZE 1048576  // in bytes === 1Mib
 #define LARGE_BLOCK_SIZE 33554432  // in bytes === 32Mib
 
-#define MIN_SIZE_TO_RETURN 256  // in bytes, defined in the tp
+#define MIN_SIZE_TO_RETURN 256     // in bytes, defined in the tp
 
 struct block *small_size_block_list = NULL;
 struct block *medium_size_block_list = NULL;
@@ -508,19 +508,6 @@ calloc(size_t nmemb, size_t size)
 void *
 realloc(void *ptr, size_t size)
 {
-	//  Caso achicar:
-	//  |header|                    | header|                    |
-	//  |header|              |     | header|                    |
-	//
-	//  if (size <= sizeof(struct region)) return NULL;
-	//  O simplemente no hacer nada
-	//  else call splitting function with struct region of the header to the left
-	//
-	//  Cualquier otro caso:
-	//  Hacer malloc del tam pedido
-	//  Copiar lo de la region vieja a la nueva
-	//  Hacer free de la region vieja
-
 	// Si ptr es igual a NULL, el comportamiento es igual a malloc(size)
 	if (ptr == NULL) {
 		return malloc(size);
@@ -529,56 +516,21 @@ realloc(void *ptr, size_t size)
 	// Si size es igual a cero (y ptr no es NULL) debería ser equivalente a free(ptr)
 	if (size == 0) {
 		free(ptr);
-		// REG: no es realmente necesario pq pasarle size 0 a realloc no es tecnicamente un
-		//  error si el comportamiento esperado es que llame a free.
-		errno = EINVAL;  // EINVAL es un código de error en sistemas Unix
-		                 // y similares que indica que un argumento proporcionado
-		                 // a una función es inválido o no es compatible
 		return NULL;
 	}
+
+	// assert(old_region->magic_number == integrity_value);
 
 	struct region *old_region = PTR2REGION(ptr);
 
-	if (old_region == NULL) {
-		// ptr no fue pedido con malloc
-		errno = ENOMEM;
-		return NULL;
-	}
+	void *new_ptr = calloc(1, size);
+	if (new_ptr == NULL)
+		return;
 
-	size_t old_size = old_region->size;
+	memcpy(new_ptr, ptr, (old_region->size < size) ? old_region->size : size);
 
-	// REG: si size es mas chico que old_size tiene que achicar la region
-	// "The realloc function can be used to resize a memory block to either
-	// a larger or smaller size" JM:  what happends if contents need more
-	// space than the desired new size?
-	if (size < old_size) {
-		return split_free_regions(old_region, size);
-	}
-	void *new_ptr = malloc(size);
-
-	if (new_ptr == NULL) {
-		// fallo la asignación de memoria, devolvemos ptr sin modificar
-		return ptr;
-	}
-
-	// Reg: regarding using old_size in memcpy
-	//  we have 2 potencial cases:
-	//  - we are using realloc to to resize a memory block to a larger size
-	//  - we are using realloc to to resize a memory block to a smaller size
-
-	// in the first case since the new memory block is bigger than the previous
-	// one we should copy all the contents of the previous memory block, so we use old_size in memcpy
-
-	// in the first case since the new memory block is smalelr than the
-	// previous one we should copy only the contents of the previous memory
-	// block until the new size of the block, so if the original block was
-	// 20 bytes and the new_one with realloc is only 10 we should then just
-	// copy the first 10 bytes of the original block
-	// we could use something like this:
-	// memcpy(new_ptr, ptr, (old_size < size) ? old_size : size);
-
-	memcpy(new_ptr, ptr, old_size);
 	free(ptr);
+
 	return new_ptr;
 }
 void

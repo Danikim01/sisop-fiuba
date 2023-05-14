@@ -488,6 +488,7 @@ test_realloc_to_smaller_size(void)
 {
 	print_test_name("test_realloc_to_smaller_size");
 	char *foo = malloc(300);
+	// since Realloc creates a new Region now you have 3 regions in total
 	foo = realloc(foo, 256);
 
 	struct malloc_stats stats;
@@ -503,35 +504,35 @@ test_realloc_to_smaller_size(void)
 int
 main(void)
 {
-	// 	run_test(successful_malloc_returns_non_null_pointer);
-	// 	run_test(correct_copied_value);
-	// 	run_test(correct_amount_of_mallocs);
-	// 	run_test(test_regions_are_updated_to_not_free);
-	// 	run_test(test_regions_are_updated_to_free_after_freeing_them);
-	// 	run_test(correct_amount_of_frees);
-	// 	run_test(correct_amount_of_requested_memory);
-	// 	run_test(multiple_mallocs_are_made_correctly);
-	// 	run_test(test_first_block_is_medium_size_if_user_asks_more_than_small_size);
-	// 	run_test(test_first_block_is_large_size_if_user_asks_more_than_medium_size);
-	// 	run_test(test_malloc_should_return_null_if_user_asks_more_than_large_size);
-	// 	run_test(test_deletion_of_block);
-	// 	run_test(test_spliting);
-	// 	run_test(test_coalecing);
+	run_test(successful_malloc_returns_non_null_pointer);
+	run_test(correct_copied_value);
+	run_test(correct_amount_of_mallocs);
+	run_test(test_regions_are_updated_to_not_free);
+	run_test(test_regions_are_updated_to_free_after_freeing_them);
+	run_test(correct_amount_of_frees);
+	run_test(correct_amount_of_requested_memory);
+	run_test(multiple_mallocs_are_made_correctly);
+	run_test(test_first_block_is_medium_size_if_user_asks_more_than_small_size);
+	run_test(test_first_block_is_large_size_if_user_asks_more_than_medium_size);
+	run_test(test_malloc_should_return_null_if_user_asks_more_than_large_size);
+	run_test(test_deletion_of_block);
+	run_test(test_spliting);
+	run_test(test_coalecing);
 
-	// // Test relacionados a First Fit, recorda usar // make - B - e USE_FF = true
-	// // al compilar
-	// #ifdef FIRST_FIT
-	// 	run_test(test_first_fit_returns_first_adequate_region);
-	// #endif
+// Test relacionados a First Fit, recorda usar // make - B - e USE_FF = true
+// al compilar
+#ifdef FIRST_FIT
+	run_test(test_first_fit_returns_first_adequate_region);
+#endif
 
-	// #ifdef BEST_FIT
-	// 	run_test(test_best_fit_returns_first_adequate_region);
-	// 	// run_test(correct_best_fit_various_regions);
-	// #endif
+#ifdef BEST_FIT
+	run_test(test_best_fit_returns_first_adequate_region);
+	// run_test(correct_best_fit_various_regions);
+#endif
 
-	// 	run_test(test_comportamiento_bloques);
-	// 	run_test(test_calloc_allocates_desired_size_of_memory);
-	// 	run_test(test_memory_allocated_by_calloc_is_initializated_in_0);
+	run_test(test_comportamiento_bloques);
+	run_test(test_calloc_allocates_desired_size_of_memory);
+	run_test(test_memory_allocated_by_calloc_is_initializated_in_0);
 	run_test(test_realloc_to_smaller_size);
 
 	return 0;
