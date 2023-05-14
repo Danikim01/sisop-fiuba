@@ -493,12 +493,50 @@ test_realloc_to_smaller_size(void)
 
 	struct malloc_stats stats;
 	get_stats(&stats);
+	// Este test falla pq tenemos que definir como interpretamos amount_of_regions
+	//  si son la totalidad de regiones (particiones)  del bloque contando las
+	//  free y las que no o solo las free
+	ASSERT_TRUE("Amount of regions should be 2: ",
+	            stats.amount_of_regions == 2);
+
+	char *fii = malloc(300);
+	ASSERT_TRUE("Amount of regions should be 3: ",
+	            stats.amount_of_regions == 3);
+	free(foo);
+	free(fii);
+}
+
+static void
+test_realloc_to_bigger_size(void)
+{
+	print_test_name("test_realloc_to_bigger_size");
+	char *foo = malloc(300);
+	// since Realloc creates a new Region now you have 3 regions in total
+	foo = realloc(foo, 500);
+
+	struct malloc_stats stats;
+	get_stats(&stats);
 	ASSERT_TRUE("Amount of regions should be 3: ",
 	            stats.amount_of_regions == 3);
 
-	char *fii = malloc(300);
-	ASSERT_TRUE("Amount of regions should still be 3: ",
-	            stats.amount_of_regions == 3);
+	char *fii = malloc(600);
+	get_stats(&stats);
+	ASSERT_TRUE("Amount of regions should be 4: ",
+	            stats.amount_of_regions == 4);
+	free(foo);
+	free(fii);
+}
+
+static void
+test_realloc_should_copy_previous_values()
+{
+	print_test_name("test");
+	void *var = malloc(10);
+	strcpy(var, "hola");
+
+	realloc(var, 15);
+
+	ASSERT_TRUE("Content should be 'hola'", strcmp((char *) var, "hola") == 0);
 }
 
 int
@@ -527,13 +565,15 @@ main(void)
 
 #ifdef BEST_FIT
 	run_test(test_best_fit_returns_first_adequate_region);
-	// run_test(correct_best_fit_various_regions);
+// run_test(correct_best_fit_various_regions);
 #endif
 
 	run_test(test_comportamiento_bloques);
 	run_test(test_calloc_allocates_desired_size_of_memory);
 	run_test(test_memory_allocated_by_calloc_is_initializated_in_0);
 	run_test(test_realloc_to_smaller_size);
+	run_test(test_realloc_to_bigger_size);
+	run_test(test_realloc_should_copy_previous_values);
 
 	return 0;
 }
