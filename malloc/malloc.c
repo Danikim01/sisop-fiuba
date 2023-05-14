@@ -358,7 +358,7 @@ validate_size(size_t size)
 
 	// TODO: Check malloc result in this case and if i have to have in
 	// consideration the header size
-	if (new_size > LARGE_BLOCK_SIZE)
+	if (new_size > LARGE_BLOCK_SIZE - sizeof(struct region) - sizeof(struct block))
 		return 0;
 
 	// if the size that's being asked is lower than a minimum, then return the minimum
