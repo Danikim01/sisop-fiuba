@@ -598,17 +598,16 @@ test_magic_region_is_not_correct(void)
 	region_header->magic = 0;
 
 	// realloc should fail
-	char* new_var = realloc(var, 15);
+	char *new_var = realloc(var, 15);
 
-	ASSERT_TRUE("Magic number should be incorrect",
-	            new_var == NULL);
+	ASSERT_TRUE("Magic number should be incorrect", new_var == NULL);
 
-	char* var2 = malloc(10);
+	char *var2 = malloc(10);
 
 	// corrupt memory by adding to pointer
-	var2 += 1;  
+	var2 += 1;
 	ASSERT_TRUE("Free of corrupted memory should fail",
-	             realloc(var2, 15) == NULL);
+	            realloc(var2, 15) == NULL);
 
 	free(var);
 }
