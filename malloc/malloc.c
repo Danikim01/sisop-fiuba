@@ -28,8 +28,6 @@
 
 #define MIN_SIZE_TO_RETURN 256  // in bytes, defined in the tp
 
-#define MAGIC_NUMBER 0x51889023  // Magic number to check if the region is valid
-
 struct block *small_size_block_list = NULL;
 struct block *medium_size_block_list = NULL;
 struct block *large_size_block_list = NULL;
@@ -261,12 +259,6 @@ coalesce_regions(struct region *curr)
 static struct region *
 split_free_regions(struct region *region_to_split, size_t desired_size)
 {
-	// TODO: AGREGAR QUE SI  LA REGION  A LA DERECHA QUE QUEDARIA DESP DE SPLITEAR
-	//  ES MENOR A SIZEOF(HEADER) + MIN_SIZE NO SPLITES DEVOLVE TODO DIRECTAMENTE
-	//  TODO: Check if it makes sense to split if the desired size is big
-	//  compared to the region. If if have 100 bytes and they ask me for 99,
-	//  does it make sense to split?
-	//  Check if the region_to_split can be split
 	if (region_to_split->size > desired_size) {
 		size_t prev_region_size = region_to_split->size;
 
@@ -561,6 +553,13 @@ realloc(void *ptr, size_t size)
 	struct region *old_region = PTR2REGION(ptr);
 	struct region *region_to_return = NULL;
 
+	// Si old_region tiene un magic number distinto al esperado
+	// simboliza error
+	if (old_region->magic != MAGIC_NUMBER) {
+		errno = ENOMEM;
+		return NULL;
+	}
+
 	// Si el size es igual al size de la region, no hacemos nada
 	if (size == old_region->size) {
 		return ptr;
@@ -571,12 +570,6 @@ realloc(void *ptr, size_t size)
 	// como libre y con ceros
 	else if (size < old_region->size) {
 		region_to_return = split_free_regions(old_region, size);
-		// COMO COMENTARIO DEBERIAMOS HACER UN CHECKEO EN
-		// "split_free_regions" QUE SI LA REGION QUE TE QUEDA DESP DE
-		// SPLITEAR ES MENOR A 256b DEBERIA ENTREGAR TODA LA MEMORIA O
-		// ALGO NO TIENE SENTIDO QUE QUEDE UNA REGION MENOR A EL TAMAñO
-		// MINIMO QUE PUEDE PEDIR EL USUARIO
-		//  fills with 0 the remaining region
 		memset(REGION2PTR(region_to_return->next),
 		       0,
 		       region_to_return->next->size);

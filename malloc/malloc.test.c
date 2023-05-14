@@ -578,6 +578,41 @@ test_realloc_should_copy_previous_values()
 	ASSERT_TRUE("Pointer should be the same", var == new_var);
 }
 
+static void
+test_magic_number_is_correct(void)
+{
+	print_test_name("test_magic_number_is_correct");
+	char *var = malloc(10);
+	struct region *region_header = PTR2REGION(var);
+	ASSERT_TRUE("Magic number should be correct",
+	            region_header->magic == MAGIC_NUMBER);
+	free(var);
+}
+
+static void
+test_magic_region_is_not_correct(void)
+{
+	print_test_name("test_magic_region_is_not_correct");
+	char *var = malloc(10);
+	struct region *region_header = PTR2REGION(var);
+	region_header->magic = 0;
+
+	// realloc should fail
+	char* new_var = realloc(var, 15);
+
+	ASSERT_TRUE("Magic number should be incorrect",
+	            new_var == NULL);
+
+	char* var2 = malloc(10);
+
+	// corrupt memory by adding to pointer
+	var2 += 1;  
+	ASSERT_TRUE("Free of corrupted memory should fail",
+	             realloc(var2, 15) == NULL);
+
+	free(var);
+}
+
 int
 main(void)
 {
@@ -615,5 +650,7 @@ main(void)
 	run_test(test_realloc_to_bigger_size_next_region_is_free);
 	run_test(test_realloc_to_bigger_size_next_region_is_NOT_free);
 	run_test(test_realloc_should_copy_previous_values);
+	run_test(test_magic_number_is_correct);
+	run_test(test_magic_region_is_not_correct);
 	return 0;
 }

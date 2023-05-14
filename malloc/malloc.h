@@ -3,6 +3,8 @@
 
 #include <stdbool.h>
 
+#define MAGIC_NUMBER 0x51889023  // Magic number to check if the region is valid
+
 struct malloc_stats {
 	int mallocs;
 	int frees;
