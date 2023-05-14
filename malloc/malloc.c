@@ -26,7 +26,7 @@
 #define MEDIUM_BLOCK_SIZE 1048576  // in bytes === 1Mib
 #define LARGE_BLOCK_SIZE 33554432  // in bytes === 32Mib
 
-#define MIN_SIZE_TO_RETURN 256     // in bytes, defined in the tp
+#define MIN_SIZE_TO_RETURN 256  // in bytes, defined in the tp
 
 struct block *small_size_block_list = NULL;
 struct block *medium_size_block_list = NULL;
@@ -46,12 +46,12 @@ static struct region *
 region_first_fist(struct block *block_list, size_t size)
 {
 	struct region *act = block_list->first_region;
-
 	while (act != NULL) {
-		if (act->size >= size && act->free == true) {
-			act->free = false;
-			return act;
-		}
+		if (act->free == true)
+			if (act->size >= size && act->free == true) {
+				act->free = false;
+				return act;
+			}
 		act = act->next;
 	}
 
@@ -229,44 +229,6 @@ grow_heap(size_t block_size)
 	return new_block->first_region;
 }
 
-
-static struct region *
-split_free_regions(struct region *region_to_split, size_t desired_size)
-{
-	// TODO: Check if it makes sense to split if the desired size is big
-	// compared to the region. If if have 100 bytes and they ask me for 99,
-	// does it make sense to split?
-	// Check if the region_to_split can be split
-	if (region_to_split->size > desired_size) {
-		size_t prev_region_size = region_to_split->size;
-
-		// Update the size of the region to split
-		region_to_split->size = desired_size;
-
-		// Obtain the new header position:
-		// Move to the region pointer
-		void *ptr_to_region = REGION2PTR(region_to_split);
-		// Move the desired amount of bytes into the region, plus the
-		// size of a struct region (for the new header)
-		void *ptr_to_new_header = (char *) ptr_to_region + desired_size;
-		struct region *new_header = (struct region *) ptr_to_new_header;
-
-		// Initialize the new header with the remaining size, and update the links in the free list
-		new_header->size =
-		        prev_region_size - desired_size - sizeof(struct region);
-		new_header->next = region_to_split->next;
-		new_header->free = true;
-		new_header->prev = region_to_split;
-
-		region_to_split->next = new_header;
-		amount_of_regions++;
-	}
-
-	// If the region can't be split, just return the original region
-	return region_to_split;
-}
-
-
 static struct region *
 coalesce_regions(struct region *curr)
 {
@@ -294,6 +256,47 @@ coalesce_regions(struct region *curr)
 	}
 
 	return curr;
+}
+
+
+static struct region *
+split_free_regions(struct region *region_to_split, size_t desired_size)
+{
+	// TODO: AGREGAR QUE SI  LA REGION  A LA DERECHA QUE QUEDARIA DESP DE SPLITEAR
+	//  ES MENOR A SIZEOF(HEADER) + MIN_SIZE NO SPLITES DEVOLVE TODO DIRECTAMENTE
+	//  TODO: Check if it makes sense to split if the desired size is big
+	//  compared to the region. If if have 100 bytes and they ask me for 99,
+	//  does it make sense to split?
+	//  Check if the region_to_split can be split
+	if (region_to_split->size > desired_size) {
+		size_t prev_region_size = region_to_split->size;
+
+		// Update the size of the region to split
+		region_to_split->size = desired_size;
+
+		// Obtain the new header position:
+		// Move to the region pointer
+		void *ptr_to_region = REGION2PTR(region_to_split);
+		// Move the desired amount of bytes into the region, plus the
+		// size of a struct region (for the new header)
+		void *ptr_to_new_header = (char *) ptr_to_region + desired_size;
+		struct region *new_header = (struct region *) ptr_to_new_header;
+
+		// Initialize the new header with the remaining size, and update the links in the free list
+		new_header->size =
+		        prev_region_size - desired_size - sizeof(struct region);
+		new_header->next = region_to_split->next;
+		new_header->free = true;
+		new_header->prev = region_to_split;
+
+		region_to_split->next = new_header;
+		coalesce_regions(new_header);
+
+		amount_of_regions++;
+	}
+
+	// If the region can't be split, just return the original region
+	return region_to_split;
 }
 
 
@@ -443,9 +446,9 @@ malloc(size_t size)
 		next = grow_heap(block_size);
 	}
 
+	next->free = false;  // Mark it as not free
 	next = split_free_regions(next, size);
 
-	next->free = false;  // Before returning the region, mark it as not free
 	return REGION2PTR(next);
 }
 
@@ -505,6 +508,41 @@ calloc(size_t nmemb, size_t size)
 	return mem;
 }
 
+struct region *
+expand_region(struct region *region_to_expand, size_t size_to_expand)
+{
+	// DEBERIAMOS HACER UN CHECKEO QUE SI LA REGION A LA DERECHA QUE TE
+	// QUEDA DESP DE AGRANDAR ES MENOR A 256b + sizeof(header) DEBERIA
+	// ENTREGAR TODA LA MEMORIA O ALGO asi NO TIENE SENTIDO QUE
+	// QUEDE UNA REGION MENOR A EL TAMAñO MINIMO QUE PUEDE
+	// PEDIR EL USUARIO
+	size_t next_region_old_size = region_to_expand->next->size;
+
+	// we expand the region to the desired size
+	region_to_expand->size = region_to_expand->size + size_to_expand;
+
+	// Now we insert the new header to the region on the right
+	// Obtain the new header position:
+	// Move to the region pointer
+	void *ptr_to_region = REGION2PTR(region_to_expand);
+	// Move the desired amount of bytes into the region, plus the
+	// size of a struct region (for the new header)
+	void *ptr_to_new_header = (char *) ptr_to_region + region_to_expand->size;
+	struct region *new_header = (struct region *) ptr_to_new_header;
+
+
+	// Initialize the new header with the remaining size, and update the links in the free list
+	new_header->size = next_region_old_size - size_to_expand;
+	new_header->next = region_to_expand->next;
+	new_header->free = true;
+	new_header->prev = region_to_expand;
+
+	region_to_expand->next = new_header;
+	amount_of_regions++;
+
+	return region_to_expand;
+}
+
 void *
 realloc(void *ptr, size_t size)
 {
@@ -522,17 +560,51 @@ realloc(void *ptr, size_t size)
 	// assert(old_region->magic_number == integrity_value);
 
 	struct region *old_region = PTR2REGION(ptr);
+	struct region *region_to_return = NULL;
 
-	void *new_ptr = calloc(1, size);
-	if (new_ptr == NULL)
-		return;
 
-	memcpy(new_ptr, ptr, (old_region->size < size) ? old_region->size : size);
+	// Case Shrinking
+	// hacer spliting region actual y devolver el mismo ptr
+	// llenar con 0 el resto de la memoria ?
+	if (size < old_region->size) {
+		region_to_return = split_free_regions(old_region, size);
+		// COMO COMENTARIO DEBERIAMOS HACER UN CHECKEO EN
+		// "split_free_regions" QUE SI LA REGION QUE TE QUEDA DESP DE
+		// SPLITEAR ES MENOR A 256b DEBERIA ENTREGAR TODA LA MEMORIA O
+		// ALGO NO TIENE SENTIDO QUE QUEDE UNA REGION MENOR A EL TAMAñO
+		// MINIMO QUE PUEDE PEDIR EL USUARIO
+		//  fills with 0 the remaining region
+		memset(REGION2PTR(region_to_return->next),
+		       0,
+		       region_to_return->next->size);
 
-	free(ptr);
+	} else if (size > old_region->size) {
+		// - CASE: The next region is free and has enough memory to expand so
+		//  we extend the memory and insert a new headear at the end
+		if (old_region->next->free == true &&
+		    old_region->size + old_region->next->size >= size) {
+			region_to_return =
+			        expand_region(old_region,
+			                      (size - old_region->size));
+		} else {
+			// CASE: Not enough memory to expand or the next Region is NOT
+			// free so we need to create a new region with malloc
+			void *region_to_return = calloc(1, size);
+			if (region_to_return == NULL) {
+				errno = ENOMEM;
+				return;
 
-	return new_ptr;
+				memcpy(REGION2PTR(region_to_return),
+				       ptr,
+				       old_region->size);
+				free(ptr);
+			}
+		}
+	}
+
+	return region_to_return;
 }
+
 void
 get_stats(struct malloc_stats *stats)
 {

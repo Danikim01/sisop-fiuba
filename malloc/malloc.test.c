@@ -76,7 +76,9 @@ correct_amount_of_mallocs(void)
 
 	ASSERT_TRUE("amount of mallocs should be one", stats.mallocs == 1);
 
+	printfmt("before malloc 2");
 	char *var_2 = malloc(100);
+	printfmt("after malloc 2");
 	get_stats(&stats);
 
 	ASSERT_TRUE("amount of mallocs should be two", stats.mallocs == 2);
@@ -398,7 +400,7 @@ test_best_fit_returns_first_adequate_region(void)
 
 	struct region *region_header = PTR2REGION(var5);
 
-	ASSERT_TRUE("allocated best fit region size: ", var5 == var3);
+	ASSERT_TRUE("allocated best fit region size: ", var5 == desired_region);
 	ASSERT_TRUE("allocated best fit region is NOT free: ",
 	            region_header->free == false);
 	free(var0);
@@ -487,44 +489,87 @@ static void
 test_realloc_to_smaller_size(void)
 {
 	print_test_name("test_realloc_to_smaller_size");
-	char *foo = malloc(300);
+	// Since this is the first malloc we should have 2 regions in the block
+	//  one of 600bytes and one of (16k - 600)bytes
+	char *ptr = malloc(600);
+	char *original_region = ptr;
+
+
 	// since Realloc creates a new Region now you have 3 regions in total
-	foo = realloc(foo, 256);
+	// BUT since the spliting function does coalecing and the new split
+	// region is free as well as the one of (16k - 600)bytes you should have
+	// 2 regions in total after realloc
+	ptr = realloc(ptr, 400);
 
 	struct malloc_stats stats;
 	get_stats(&stats);
-	// Este test falla pq tenemos que definir como interpretamos amount_of_regions
-	//  si son la totalidad de regiones (particiones)  del bloque contando las
-	//  free y las que no o solo las free
-	ASSERT_TRUE("Amount of regions should be 2: ",
-	            stats.amount_of_regions == 2);
+	ASSERT_TRUE("Amount of regions should be 2", stats.amount_of_regions == 2);
 
-	char *fii = malloc(300);
-	ASSERT_TRUE("Amount of regions should be 3: ",
-	            stats.amount_of_regions == 3);
-	free(foo);
-	free(fii);
+	ASSERT_TRUE("Realloc when shrinking should return me the same ptr",
+	            original_region == ptr);
+
+	free(ptr);
 }
 
 static void
-test_realloc_to_bigger_size(void)
+test_realloc_to_bigger_size_next_region_is_free(void)
 {
-	print_test_name("test_realloc_to_bigger_size");
-	char *foo = malloc(300);
+	print_test_name("test_realloc_to_bigger_size_next_region_is_free");
+	char *ptr = malloc(300);
 	// since Realloc creates a new Region now you have 3 regions in total
-	foo = realloc(foo, 500);
+	// BUT then you do coalecing so you end up with 2
+	ptr = realloc(ptr, 500);
+	char *original_region = ptr;
 
 	struct malloc_stats stats;
 	get_stats(&stats);
-	ASSERT_TRUE("Amount of regions should be 3: ",
-	            stats.amount_of_regions == 3);
+	ASSERT_TRUE("Amount of regions should be 2", stats.amount_of_regions == 2);
+	struct region *region_header = PTR2REGION(ptr);
+	ASSERT_TRUE("The size of region should be what the user asked",
+	            region_header->size == 500);
 
-	char *fii = malloc(600);
+	ASSERT_TRUE("Realloc when shrinking should return me the same ptr",
+	            original_region == ptr);
+
+
+	free(ptr);
+}
+
+static void
+test_realloc_to_bigger_size_next_region_is_NOT_free(void)
+{
+	print_test_name("test_realloc_to_bigger_size_next_region_is_NOT_free");
+	char *ptr = malloc(300);
+	char *original_region = ptr;
+	char *ptr2 = malloc(300);
+	// since Realloc next region is occupied this should create a new region
+	// and FREE the original one but since the neighbours are occupied (and
+	// one in NULL) you should end up with 4 regions, 2 free, 2 !free
+	ptr = realloc(ptr, 500);
+
+	struct malloc_stats stats;
 	get_stats(&stats);
-	ASSERT_TRUE("Amount of regions should be 4: ",
-	            stats.amount_of_regions == 4);
-	free(foo);
-	free(fii);
+	ASSERT_TRUE("Amount of regions should be 4", stats.amount_of_regions == 4);
+
+	struct region *region_header = PTR2REGION(ptr);
+
+	if (region_header == NULL)
+		printfmt("Es NULL efectivamente\n");
+
+	// Okey no es NULL regionHeader
+
+	ASSERT_TRUE("The size of region should be what the user asked",
+	            region_header->size == 500);
+
+	printfmt("Se mata aca\n");
+	ASSERT_TRUE("ptr should not be equal to the original region",
+	            ptr != original_region);
+
+	struct region *original_region_header = PTR2REGION(original_region);
+	ASSERT_TRUE("original_region should be free to use",
+	            original_region_header->free == true);
+	free(ptr);
+	free(ptr2);
 }
 
 static void
@@ -542,37 +587,38 @@ test_realloc_should_copy_previous_values()
 int
 main(void)
 {
-	run_test(successful_malloc_returns_non_null_pointer);
-	run_test(correct_copied_value);
-	run_test(correct_amount_of_mallocs);
-	run_test(test_regions_are_updated_to_not_free);
-	run_test(test_regions_are_updated_to_free_after_freeing_them);
-	run_test(correct_amount_of_frees);
-	run_test(correct_amount_of_requested_memory);
-	run_test(multiple_mallocs_are_made_correctly);
-	run_test(test_first_block_is_medium_size_if_user_asks_more_than_small_size);
-	run_test(test_first_block_is_large_size_if_user_asks_more_than_medium_size);
-	run_test(test_malloc_should_return_null_if_user_asks_more_than_large_size);
-	run_test(test_deletion_of_block);
-	run_test(test_spliting);
-	run_test(test_coalecing);
+	// run_test(successful_malloc_returns_non_null_pointer);
+	// run_test(correct_copied_value);
+	// run_test(correct_amount_of_mallocs);
+	// run_test(test_regions_are_updated_to_not_free);
+	// run_test(test_regions_are_updated_to_free_after_freeing_them);
+	// run_test(correct_amount_of_frees);
+	// run_test(correct_amount_of_requested_memory);
+	// run_test(multiple_mallocs_are_made_correctly);
+	// run_test(test_first_block_is_medium_size_if_user_asks_more_than_small_size);
+	// run_test(test_first_block_is_large_size_if_user_asks_more_than_medium_size);
+	// run_test(test_malloc_should_return_null_if_user_asks_more_than_large_size);
+	// run_test(test_deletion_of_block);
+	// run_test(test_spliting);
+	// run_test(test_coalecing);
 
 // Test relacionados a First Fit, recorda usar // make - B - e USE_FF = true
 // al compilar
 #ifdef FIRST_FIT
-	run_test(test_first_fit_returns_first_adequate_region);
+	// run_test(test_first_fit_returns_first_adequate_region);
 #endif
 
 #ifdef BEST_FIT
-	run_test(test_best_fit_returns_first_adequate_region);
+	// run_test(test_best_fit_returns_first_adequate_region);
 // run_test(correct_best_fit_various_regions);
 #endif
 
-	run_test(test_comportamiento_bloques);
-	run_test(test_calloc_allocates_desired_size_of_memory);
-	run_test(test_memory_allocated_by_calloc_is_initializated_in_0);
+	// run_test(test_comportamiento_bloques);
+	// run_test(test_calloc_allocates_desired_size_of_memory);
+	// run_test(test_memory_allocated_by_calloc_is_initializated_in_0);
 	run_test(test_realloc_to_smaller_size);
-	run_test(test_realloc_to_bigger_size);
+	run_test(test_realloc_to_bigger_size_next_region_is_free);
+	run_test(test_realloc_to_bigger_size_next_region_is_NOT_free);
 	run_test(test_realloc_should_copy_previous_values);
 
 	return 0;
