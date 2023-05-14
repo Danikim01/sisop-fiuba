@@ -494,7 +494,6 @@ test_realloc_to_smaller_size(void)
 	char *ptr = malloc(600);
 	char *original_region = ptr;
 
-
 	// since Realloc creates a new Region now you have 3 regions in total
 	// BUT since the spliting function does coalecing and the new split
 	// region is free as well as the one of (16k - 600)bytes you should have
@@ -503,7 +502,8 @@ test_realloc_to_smaller_size(void)
 
 	struct malloc_stats stats;
 	get_stats(&stats);
-	ASSERT_TRUE("Amount of regions should be 2", stats.amount_of_regions == 2);
+	ASSERT_TRUE("Amount of regions should be 2",
+	            stats.amount_of_regions == 2);  // outputing 3
 
 	ASSERT_TRUE("Realloc when shrinking should return me the same ptr",
 	            original_region == ptr);
@@ -545,6 +545,8 @@ test_realloc_to_bigger_size_next_region_is_NOT_free(void)
 	// since Realloc next region is occupied this should create a new region
 	// and FREE the original one but since the neighbours are occupied (and
 	// one in NULL) you should end up with 4 regions, 2 free, 2 !free
+	struct region *og_region_header = PTR2REGION(ptr);
+	printfmt("original size: %d\n", og_region_header->size);
 	ptr = realloc(ptr, 500);
 
 	struct malloc_stats stats;
@@ -553,15 +555,9 @@ test_realloc_to_bigger_size_next_region_is_NOT_free(void)
 
 	struct region *region_header = PTR2REGION(ptr);
 
-	if (region_header == NULL)
-		printfmt("Es NULL efectivamente\n");
-
-	// Okey no es NULL regionHeader
-
 	ASSERT_TRUE("The size of region should be what the user asked",
 	            region_header->size == 500);
-
-	printfmt("Se mata aca\n");
+	printfmt("actual size: %d\n", region_header->size);
 	ASSERT_TRUE("ptr should not be equal to the original region",
 	            ptr != original_region);
 
@@ -579,47 +575,48 @@ test_realloc_should_copy_previous_values()
 	void *var = malloc(10);
 	strcpy(var, "hola");
 
-	realloc(var, 15);
+	void *new_var = realloc(var, 15);
 
 	ASSERT_TRUE("Content should be 'hola'", strcmp((char *) var, "hola") == 0);
+	ASSERT_TRUE("Pointer should be the same", var == new_var);
 }
 
 int
 main(void)
 {
-	// run_test(successful_malloc_returns_non_null_pointer);
-	// run_test(correct_copied_value);
-	// run_test(correct_amount_of_mallocs);
-	// run_test(test_regions_are_updated_to_not_free);
-	// run_test(test_regions_are_updated_to_free_after_freeing_them);
-	// run_test(correct_amount_of_frees);
-	// run_test(correct_amount_of_requested_memory);
-	// run_test(multiple_mallocs_are_made_correctly);
-	// run_test(test_first_block_is_medium_size_if_user_asks_more_than_small_size);
-	// run_test(test_first_block_is_large_size_if_user_asks_more_than_medium_size);
-	// run_test(test_malloc_should_return_null_if_user_asks_more_than_large_size);
-	// run_test(test_deletion_of_block);
-	// run_test(test_spliting);
-	// run_test(test_coalecing);
+	run_test(successful_malloc_returns_non_null_pointer);
+	run_test(correct_copied_value);
+	run_test(correct_amount_of_mallocs);
+	run_test(correct_amount_of_memory_being_use);
+	run_test(test_regions_are_updated_to_not_free);
+	run_test(test_regions_are_updated_to_free_after_freeing_them);
+	run_test(correct_amount_of_frees);
+	run_test(correct_amount_of_requested_memory);
+	run_test(multiple_mallocs_are_made_correctly);
+	run_test(test_first_block_is_medium_size_if_user_asks_more_than_small_size);
+	run_test(test_first_block_is_large_size_if_user_asks_more_than_medium_size);
+	run_test(test_malloc_should_return_null_if_user_asks_more_than_large_size);
+	run_test(test_deletion_of_block);
+	run_test(test_spliting);
+	run_test(test_coalecing);
 
 // Test relacionados a First Fit, recorda usar // make - B - e USE_FF = true
 // al compilar
 #ifdef FIRST_FIT
-	// run_test(test_first_fit_returns_first_adequate_region);
+	run_test(test_first_fit_returns_first_adequate_region);
 #endif
 
 #ifdef BEST_FIT
-	// run_test(test_best_fit_returns_first_adequate_region);
-// run_test(correct_best_fit_various_regions);
+	run_test(test_best_fit_returns_first_adequate_region);
+	run_test(correct_best_fit_various_regions);
 #endif
 
-	// run_test(test_comportamiento_bloques);
-	// run_test(test_calloc_allocates_desired_size_of_memory);
-	// run_test(test_memory_allocated_by_calloc_is_initializated_in_0);
+	run_test(test_comportamiento_bloques);
+	run_test(test_calloc_allocates_desired_size_of_memory);
+	run_test(test_memory_allocated_by_calloc_is_initializated_in_0);
 	run_test(test_realloc_to_smaller_size);
 	run_test(test_realloc_to_bigger_size_next_region_is_free);
 	run_test(test_realloc_to_bigger_size_next_region_is_NOT_free);
 	run_test(test_realloc_should_copy_previous_values);
-
 	return 0;
 }

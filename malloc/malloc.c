@@ -76,8 +76,6 @@ first_fit(struct block *block_list, size_t size)
 }
 
 static struct region *
-// REG: de nuevo block es un mal nombre de variable
-// sacando eso esta bien esto
 region_best_fit(struct block *block_list, size_t size)
 {
 	if (!block_list)
@@ -129,14 +127,14 @@ find_free_region(size_t size)
 
 #ifdef BEST_FIT
 	if (size <= SMALL_BLOCK_SIZE) {
-		if (fitting_region = best_fit(small_size_block_list, size)) {
+		if ((fitting_region = best_fit(small_size_block_list, size))) {
 			return fitting_region;
-		} else if (fitting_region =
-		                   best_fit(medium_size_block_list, size)) {
+		} else if ((fitting_region =
+		                    best_fit(medium_size_block_list, size))) {
 			return fitting_region;
 		}
 	} else if (size <= MEDIUM_BLOCK_SIZE) {
-		if (fitting_region = best_fit(medium_size_block_list, size)) {
+		if ((fitting_region = best_fit(medium_size_block_list, size))) {
 			return fitting_region;
 		}
 	}
@@ -145,14 +143,14 @@ find_free_region(size_t size)
 
 #ifdef FIRST_FIT
 	if (size <= SMALL_BLOCK_SIZE) {
-		if (fitting_region = first_fit(small_size_block_list, size)) {
+		if ((fitting_region = first_fit(small_size_block_list, size))) {
 			return fitting_region;
-		} else if (fitting_region =
-		                   first_fit(medium_size_block_list, size)) {
+		} else if ((fitting_region =
+		                    first_fit(medium_size_block_list, size))) {
 			return fitting_region;
 		}
 	} else if (size <= MEDIUM_BLOCK_SIZE) {
-		if (fitting_region = first_fit(medium_size_block_list, size)) {
+		if ((fitting_region = first_fit(medium_size_block_list, size))) {
 			return fitting_region;
 		}
 	}
@@ -164,7 +162,7 @@ find_free_region(size_t size)
 }
 
 
-void
+static void
 actualize_block_list(struct block *new_block, struct block **block_list)
 {
 	// The insertion is made in the beginning so this operation is O(1)
@@ -196,8 +194,10 @@ grow_heap(size_t block_size)
 		return NULL;
 
 	new_block->next = NULL;
-	new_block->first_region = REGION2PTR(
-	        new_block);  // The memory chunck starts where block ends
+	// struct region * first_region = REGION2PTR(new_block);
+	struct region *first_region =
+	        (struct region *) ((char *) new_block + sizeof(struct block));
+	new_block->first_region = first_region;
 
 	new_block->first_region->free = true;
 	new_block->first_region->next = NULL;
@@ -301,7 +301,7 @@ split_free_regions(struct region *region_to_split, size_t desired_size)
 
 
 // TODO: When finished, delete it
-void
+static void
 print_all_free_list_elements(struct block *list)
 {
 	// printfmt("#########\nFREE:\n##########");
@@ -335,7 +335,7 @@ print_all_free_list_elements(struct block *list)
 }
 
 
-size_t
+static size_t
 determine_block_size(size_t size)
 {
 	size_t block_size = 0;
@@ -350,7 +350,7 @@ determine_block_size(size_t size)
 	return block_size;
 }
 
-size_t
+static size_t
 validate_size(size_t size)
 {
 	// TODO: Check malloc result if it fails
@@ -372,7 +372,7 @@ validate_size(size_t size)
 }
 
 // If this function fails it returns 0, otherwise 1
-int
+static int
 free_empty_blocks(struct block **desired_block_list, size_t block_size)
 {
 	struct block *prev = NULL;
@@ -480,7 +480,7 @@ free(void *ptr)
 			         "block.\n");
 			return;
 		}
-	} else if (coalesced_region <= MEDIUM_BLOCK_SIZE) {
+	} else if (coalesced_region->size <= MEDIUM_BLOCK_SIZE) {
 		if (!free_empty_blocks(&small_size_block_list, MEDIUM_BLOCK_SIZE)) {
 			printfmt("ERROR: Failed freeing a totally empty "
 			         "block.\n");
@@ -508,39 +508,30 @@ calloc(size_t nmemb, size_t size)
 	return mem;
 }
 
-struct region *
-expand_region(struct region *region_to_expand, size_t size_to_expand)
+static struct region *
+expand_region(struct region *region, size_t size_to_expand)
 {
-	// DEBERIAMOS HACER UN CHECKEO QUE SI LA REGION A LA DERECHA QUE TE
-	// QUEDA DESP DE AGRANDAR ES MENOR A 256b + sizeof(header) DEBERIA
-	// ENTREGAR TODA LA MEMORIA O ALGO asi NO TIENE SENTIDO QUE
-	// QUEDE UNA REGION MENOR A EL TAMAñO MINIMO QUE PUEDE
-	// PEDIR EL USUARIO
-	size_t next_region_old_size = region_to_expand->next->size;
+	// obtenemos la region siguiente y su tamaño
+	struct region *next_region = region->next;
+	size_t next_region_size = next_region->size;
 
-	// we expand the region to the desired size
-	region_to_expand->size = region_to_expand->size + size_to_expand;
+	// actualizamos el tamaño de la region actual
+	region->size = region->size + size_to_expand;
 
-	// Now we insert the new header to the region on the right
-	// Obtain the new header position:
-	// Move to the region pointer
-	void *ptr_to_region = REGION2PTR(region_to_expand);
-	// Move the desired amount of bytes into the region, plus the
-	// size of a struct region (for the new header)
-	void *ptr_to_new_header = (char *) ptr_to_region + region_to_expand->size;
-	struct region *new_header = (struct region *) ptr_to_new_header;
+	// obtenemos el puntero a la nueva region que deberia apuntar a la region siguiente
+	void *ptr_to_new_region = REGION2PTR(region) + region->size;
 
+	// casteamos el puntero a la nueva region a un struct region
+	struct region *new_next_region = PTR2REGION(ptr_to_new_region);
 
-	// Initialize the new header with the remaining size, and update the links in the free list
-	new_header->size = next_region_old_size - size_to_expand;
-	new_header->next = region_to_expand->next;
-	new_header->free = true;
-	new_header->prev = region_to_expand;
+	// actualizamos los valores de la nueva region
+	new_next_region->size = next_region_size - size_to_expand;
+	new_next_region->next = next_region->next;
+	new_next_region->free = true;
+	new_next_region->prev = region;
+	region->next = new_next_region;
 
-	region_to_expand->next = new_header;
-	amount_of_regions++;
-
-	return region_to_expand;
+	return region;
 }
 
 void *
@@ -562,11 +553,15 @@ realloc(void *ptr, size_t size)
 	struct region *old_region = PTR2REGION(ptr);
 	struct region *region_to_return = NULL;
 
+	// Si el size es igual al size de la region, no hacemos nada
+	if (size == old_region->size) {
+		return ptr;
+	}
 
-	// Case Shrinking
-	// hacer spliting region actual y devolver el mismo ptr
-	// llenar con 0 el resto de la memoria ?
-	if (size < old_region->size) {
+	// Si el size es menor al size de la region
+	// achicamos la region y seteamos la region siguiente
+	// como libre y con ceros
+	else if (size < old_region->size) {
 		region_to_return = split_free_regions(old_region, size);
 		// COMO COMENTARIO DEBERIAMOS HACER UN CHECKEO EN
 		// "split_free_regions" QUE SI LA REGION QUE TE QUEDA DESP DE
@@ -577,32 +572,28 @@ realloc(void *ptr, size_t size)
 		memset(REGION2PTR(region_to_return->next),
 		       0,
 		       region_to_return->next->size);
-
-	} else if (size > old_region->size) {
-		// - CASE: The next region is free and has enough memory to expand so
-		//  we extend the memory and insert a new headear at the end
-		if (old_region->next->free == true &&
-		    old_region->size + old_region->next->size >= size) {
-			region_to_return =
-			        expand_region(old_region,
-			                      (size - old_region->size));
-		} else {
-			// CASE: Not enough memory to expand or the next Region is NOT
-			// free so we need to create a new region with malloc
-			void *region_to_return = calloc(1, size);
-			if (region_to_return == NULL) {
-				errno = ENOMEM;
-				return;
-
-				memcpy(REGION2PTR(region_to_return),
-				       ptr,
-				       old_region->size);
-				free(ptr);
-			}
-		}
 	}
 
-	return region_to_return;
+	// Si el size es mayor al size de la region
+	// Caso 1: La region siguiente esta libre y tiene el tamaño suficiente
+	if (old_region->next->free == true &&
+	    old_region->size + old_region->next->size >= size) {
+		region_to_return =
+		        expand_region(old_region, (size - old_region->size));
+	}
+	// Caso 2: la region siguiente no esta libre o no tiene el tamaño suficiente
+	else {
+		region_to_return = malloc(size);
+		if (!region_to_return) {
+			return NULL;
+		}
+		memcpy(REGION2PTR(region_to_return), ptr, old_region->size);
+		region_to_return->size = size;
+		free(ptr);
+	}
+
+
+	return REGION2PTR(region_to_return);
 }
 
 void

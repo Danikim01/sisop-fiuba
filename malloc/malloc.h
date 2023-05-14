@@ -44,7 +44,7 @@ void actualize_free_region_list(struct region *new_region);
 
 // Given a region to split, it shrinks it to the desired_size, accomodates the
 // free list and returns the newly shrinked region
-static struct region *split_free_regions(struct region *region_to_split,
-                                         size_t desired_size);
+// static struct region *split_free_regions(struct region *region_to_split,
+//                                          size_t desired_size);
 
 #endif  // _MALLOC_H_
