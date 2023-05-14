@@ -99,7 +99,6 @@ test_regions_are_updated_to_not_free(void)
 	free(var);
 }
 
-
 static void
 test_regions_are_updated_to_free_after_freeing_them(void)
 {
@@ -283,7 +282,6 @@ test_malloc_should_return_null_if_user_asks_more_than_large_size(void)
 	ASSERT_TRUE("Malloc should return NULL: ", var == NULL);
 }
 
-
 static void
 test_deletion_of_block(void)
 {
@@ -299,7 +297,6 @@ test_deletion_of_block(void)
 	ASSERT_TRUE("Amount of small blocks should be zero: ",
 	            stats.amount_of_small_blocks == 0);
 }
-
 
 static void
 test_spliting(void)

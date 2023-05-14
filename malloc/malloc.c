@@ -28,6 +28,8 @@
 
 #define MIN_SIZE_TO_RETURN 256  // in bytes, defined in the tp
 
+#define MAGIC_NUMBER 0x51889023  // Magic number to check if the region is valid
+
 struct block *small_size_block_list = NULL;
 struct block *medium_size_block_list = NULL;
 struct block *large_size_block_list = NULL;
@@ -161,7 +163,6 @@ find_free_region(size_t size)
 	return fitting_region;
 }
 
-
 static void
 actualize_block_list(struct block *new_block, struct block **block_list)
 {
@@ -175,7 +176,6 @@ actualize_block_list(struct block *new_block, struct block **block_list)
 	*block_list = new_block;
 	new_block->next = prev_first_block_in_list;
 }
-
 
 static struct region *
 grow_heap(size_t block_size)
@@ -258,7 +258,6 @@ coalesce_regions(struct region *curr)
 	return curr;
 }
 
-
 static struct region *
 split_free_regions(struct region *region_to_split, size_t desired_size)
 {
@@ -270,6 +269,9 @@ split_free_regions(struct region *region_to_split, size_t desired_size)
 	//  Check if the region_to_split can be split
 	if (region_to_split->size > desired_size) {
 		size_t prev_region_size = region_to_split->size;
+
+		// Set magic number
+		region_to_split->magic = MAGIC_NUMBER;
 
 		// Update the size of the region to split
 		region_to_split->size = desired_size;
@@ -298,7 +300,6 @@ split_free_regions(struct region *region_to_split, size_t desired_size)
 	// If the region can't be split, just return the original region
 	return region_to_split;
 }
-
 
 // TODO: When finished, delete it
 static void
@@ -333,7 +334,6 @@ print_all_free_list_elements(struct block *list)
 		aux = aux->next;
 	}
 }
-
 
 static size_t
 determine_block_size(size_t size)
@@ -425,7 +425,6 @@ free_empty_blocks(struct block **desired_block_list, size_t block_size)
 
 /// Public API of malloc library ///
 
-
 void *
 malloc(size_t size)
 {
@@ -434,9 +433,6 @@ malloc(size_t size)
 
 	struct region *next = NULL;
 
-	// updates statistics
-	amount_of_mallocs++;
-	requested_memory += size;
 
 	next = find_free_region(size);
 
@@ -446,9 +442,17 @@ malloc(size_t size)
 		next = grow_heap(block_size);
 	}
 
-	next->free = false;  // Mark it as not free
+	next->free = false;
 	next = split_free_regions(next, size);
 
+	if (next->magic != MAGIC_NUMBER) {
+		errno = ENOMEM;
+		return NULL;
+	}
+
+	// updates statistics
+	amount_of_mallocs++;
+	requested_memory += size;
 	return REGION2PTR(next);
 }
 
@@ -478,18 +482,21 @@ free(void *ptr)
 		if (free_empty_blocks_success == 0) {
 			printfmt("ERROR: Failed freeing a totally empty "
 			         "block.\n");
+			errno = ENOMEM;
 			return;
 		}
 	} else if (coalesced_region->size <= MEDIUM_BLOCK_SIZE) {
 		if (!free_empty_blocks(&small_size_block_list, MEDIUM_BLOCK_SIZE)) {
 			printfmt("ERROR: Failed freeing a totally empty "
 			         "block.\n");
+			errno = ENOMEM;
 			return;
 		}
 	} else {
 		if (!free_empty_blocks(&small_size_block_list, LARGE_BLOCK_SIZE)) {
 			printfmt("ERROR: Failed freeing a totally empty "
 			         "block.\n");
+			errno = ENOMEM;
 			return;
 		}
 	}
@@ -502,9 +509,12 @@ void *
 calloc(size_t nmemb, size_t size)
 {
 	void *mem = malloc(nmemb * size);
-	if (mem != NULL) {
-		memset(mem, 0, nmemb * size);
+	if (!mem) {
+		errno = ENOMEM;
+		return NULL;
 	}
+
+	memset(mem, 0, nmemb * size);
 	return mem;
 }
 
@@ -548,8 +558,6 @@ realloc(void *ptr, size_t size)
 		return NULL;
 	}
 
-	// assert(old_region->magic_number == integrity_value);
-
 	struct region *old_region = PTR2REGION(ptr);
 	struct region *region_to_return = NULL;
 
@@ -585,13 +593,13 @@ realloc(void *ptr, size_t size)
 	else {
 		region_to_return = malloc(size);
 		if (!region_to_return) {
+			// if it failed errno was set by malloc
 			return NULL;
 		}
 		memcpy(REGION2PTR(region_to_return), ptr, old_region->size);
 		region_to_return->size = size;
 		free(ptr);
 	}
-
 
 	return REGION2PTR(region_to_return);
 }
