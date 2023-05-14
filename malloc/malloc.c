@@ -126,14 +126,16 @@ find_free_region(size_t size)
 	struct region *fitting_region = NULL;  // Should never be NULL
 
 #ifdef BEST_FIT
-	if (size <= SMALL_BLOCK_SIZE) {
+	if (size <=
+	    SMALL_BLOCK_SIZE - sizeof(struct region) - sizeof(struct block)) {
 		if ((fitting_region = best_fit(small_size_block_list, size))) {
 			return fitting_region;
 		} else if ((fitting_region =
 		                    best_fit(medium_size_block_list, size))) {
 			return fitting_region;
 		}
-	} else if (size <= MEDIUM_BLOCK_SIZE) {
+	} else if (size <= MEDIUM_BLOCK_SIZE - sizeof(struct region) -
+	                           sizeof(struct block)) {
 		if ((fitting_region = best_fit(medium_size_block_list, size))) {
 			return fitting_region;
 		}
@@ -142,14 +144,16 @@ find_free_region(size_t size)
 #endif
 
 #ifdef FIRST_FIT
-	if (size <= SMALL_BLOCK_SIZE) {
+	if (size <=
+	    SMALL_BLOCK_SIZE - sizeof(struct region) - sizeof(struct block)) {
 		if ((fitting_region = first_fit(small_size_block_list, size))) {
 			return fitting_region;
 		} else if ((fitting_region =
 		                    first_fit(medium_size_block_list, size))) {
 			return fitting_region;
 		}
-	} else if (size <= MEDIUM_BLOCK_SIZE) {
+	} else if (size <= MEDIUM_BLOCK_SIZE - sizeof(struct region) -
+	                           sizeof(struct block)) {
 		if ((fitting_region = first_fit(medium_size_block_list, size))) {
 			return fitting_region;
 		}
@@ -331,9 +335,11 @@ static size_t
 determine_block_size(size_t size)
 {
 	size_t block_size = 0;
-	if (size <= SMALL_BLOCK_SIZE) {
+	if (size <=
+	    SMALL_BLOCK_SIZE - sizeof(struct region) - sizeof(struct block)) {
 		block_size = SMALL_BLOCK_SIZE;
-	} else if (size <= MEDIUM_BLOCK_SIZE) {
+	} else if (size <= MEDIUM_BLOCK_SIZE - sizeof(struct region) -
+	                           sizeof(struct block)) {
 		block_size = MEDIUM_BLOCK_SIZE;
 	} else {
 		block_size = LARGE_BLOCK_SIZE;

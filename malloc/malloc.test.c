@@ -603,11 +603,9 @@ test_magic_region_is_not_correct(void)
 	ASSERT_TRUE("Magic number should be incorrect", new_var == NULL);
 
 	char *var2 = malloc(10);
-
-	// corrupt memory by adding to pointer
-	var2 += 1;
-	ASSERT_TRUE("Free of corrupted memory should fail",
-	            realloc(var2, 15) == NULL);
+	var2 = var2 + 10;  // corrupt memory by adding to pointer
+	var2 = realloc(var2, 15);
+	ASSERT_TRUE("Free of corrupted memory should fail", var2 == NULL);
 
 	free(var);
 }
