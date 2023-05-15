@@ -1,5 +1,16 @@
 # malloc
 
+## **Compilar los tests**
+
+```
+make clean && make -B -e USE_BF=true && make test
+
+                       o
+
+make clean && make -B -e USE_FF=true && make test
+
+```
+
 ## **Parte 1**
 
 En un principio no se presentó como necesario el uso de una abstracción bloque, se trabajó exclusivamente con regiones, siguiendo el apunte recomendado por la catedra: OSTEP, capítulo 17: Free-Space Management (PDF), pero con una pequeña modificación, en nuestra implementación la "free list" tambien contiene los bloques que han sido ocupados por el usuario, diferenciandose de los 

@@ -405,33 +405,6 @@ test_best_fit_returns_first_adequate_region(void)
 	free(var4);
 	free(var5);
 }
-
-
-// Este test no tiene ningun Assert.
-static void
-correct_best_fit_various_regions(void)
-{
-	print_test_name("correct_best_fit_various_regions");
-	char *var0 = malloc(700);
-	char *var1 = malloc(5000);
-	char *var2 = malloc(800);
-	char *var3 = malloc(1200);
-	char *var4 = malloc(8500);
-	char *var5 = malloc(800);
-	char *var6 = malloc(3000);
-	char *var7 = malloc(100);
-	char *var8 = malloc(1800);
-
-	free(var0);
-	free(var1);
-	free(var2);
-	free(var3);
-	free(var4);
-	free(var5);
-	free(var6);
-	free(var7);
-	free(var8);
-}
 #endif
 
 static void
@@ -568,7 +541,7 @@ test_realloc_to_bigger_size_next_region_is_NOT_free(void)
 static void
 test_realloc_should_copy_previous_values()
 {
-	print_test_name("test");
+	print_test_name("test_realloc_should_copy_previous_values");
 	void *var = malloc(10);
 	strcpy(var, "hola");
 
@@ -637,7 +610,6 @@ main(void)
 
 #ifdef BEST_FIT
 	run_test(test_best_fit_returns_first_adequate_region);
-	run_test(correct_best_fit_various_regions);
 #endif
 
 	run_test(test_comportamiento_bloques);
