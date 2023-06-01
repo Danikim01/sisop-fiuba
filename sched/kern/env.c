@@ -19,7 +19,7 @@ struct Env *envs = NULL;           // All environments
 static struct Env *env_free_list;  // Free environment list
                                    // (linked by Env->env_link)
 
-#define ENVGENSHIFT 12             // >= LOGNENV
+#define ENVGENSHIFT 12  // >= LOGNENV
 
 // Global descriptor table.
 //
