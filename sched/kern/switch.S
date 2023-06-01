@@ -9,6 +9,15 @@
 
 .globl context_switch;
 context_switch:
+	movl 4(%esp), %esp //no se que carajo hace
+	movl $2,%eax	//nose que carajo hace
+	
+	popal 
+	pop %es 
+	pop %ds
+	addl $8, %esp 
 
+	iret
+	
 spin:
 	jmp spin
