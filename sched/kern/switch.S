@@ -9,8 +9,8 @@
 
 .globl context_switch;
 context_switch:
-	movl 4(%esp), %esp //no se que carajo hace
-	movl $2,%eax	//nose que carajo hace
+	movl 4(%esp), %esp 
+	movl $2,%eax	
 	
 	popal 
 	pop %es 

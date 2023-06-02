@@ -19,7 +19,7 @@ struct Env *envs = NULL;           // All environments
 static struct Env *env_free_list;  // Free environment list
                                    // (linked by Env->env_link)
 
-#define ENVGENSHIFT 12  // >= LOGNENV
+#define ENVGENSHIFT 12             // >= LOGNENV
 
 // Global descriptor table.
 //
@@ -526,7 +526,7 @@ env_run(struct Env *e)
 	// Step 2: Use context_switch() to restore the environment's
 	//	   registers and drop into user mode in the
 	//	   environment.
-	context_switch(&e->env_tf);
+	context_switch(&curenv->env_tf);
 
 	panic("env_run not yet implemented"); /* mostly to placate the compiler */
 }
