@@ -9,12 +9,10 @@
 
 .globl context_switch;
 context_switch:
-	movl 4(%esp), %esp 
-	movl $2,%eax	
-	
+	movl 4(%esp), %esp	
 	popal 
-	pop %es 
-	pop %ds
+	popl %es 
+	popl %ds
 	addl $8, %esp 
 
 	iret

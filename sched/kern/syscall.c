@@ -12,6 +12,31 @@
 #include <kern/console.h>
 #include <kern/sched.h>
 
+static int
+sys_set_process_priority(envid_t envid, int priority)
+{
+	struct Env *e;
+	int result = envid2env(envid, &e, 1);
+
+	// Verifica que el envid sea valido y asigna a "e" el entorno correspondiente al envid.
+	if (envid2env(envid, &e, 1) != 0)
+		return result;
+
+	e->priority = priority;
+	return 0;
+}
+
+static int
+sys_get_process_priority(envid_t envid)
+{
+	struct Env *e;
+	int result = envid2env(envid, &e, 1);
+
+	if (envid2env(envid, &e, 1) != 0)
+		return result;
+
+	return e->priority;
+}
 
 static int
 check_perm(int perm, pte_t *pte)
@@ -464,6 +489,10 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 		return sys_env_set_pgfault_upcall(a1, (void *) a2);
 	case SYS_yield:
 		sys_yield();  // No return
+	case SYS_set_process_priority:
+		return sys_set_process_priority(a1, a2);
+	case SYS_get_process_priority:
+		return sys_get_process_priority(a1);
 	default:
 		return -E_INVAL;
 	}

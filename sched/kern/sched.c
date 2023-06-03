@@ -28,7 +28,7 @@ sched_yield(void)
 	// no runnable environments, simply drop through to the code
 	// below to halt the cpu.
 	int start_index = 0;
-	bool no_runnable_envs = true;
+
 	if (idle != NULL) {
 		start_index = ENVX(idle->env_id) + 1;
 	}
@@ -37,7 +37,6 @@ sched_yield(void)
 
 	while (i < NENV) {
 		if (envs[i].env_status == ENV_RUNNABLE) {
-			no_runnable_envs = false;
 			env_run(&envs[i]);
 		}
 		i++;
@@ -47,7 +46,6 @@ sched_yield(void)
 
 	while (j < start_index) {
 		if (envs[j].env_status == ENV_RUNNABLE) {
-			no_runnable_envs = false;
 			env_run(&envs[j]);
 		}
 		j++;
