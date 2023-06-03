@@ -53,6 +53,8 @@ int sys_page_map(
 int sys_page_unmap(envid_t env, void *pg);
 int sys_ipc_try_send(envid_t to_env, uint32_t value, void *pg, int perm);
 int sys_ipc_recv(void *rcv_pg);
+int sys_set_process_priority(envid_t env, int priority);
+int sys_get_process_priority(envid_t env);
 
 // This must be inlined.  Exercise for reader: why?
 static inline envid_t __attribute__((always_inline)) sys_exofork(void)
@@ -79,9 +81,9 @@ envid_t sfork(void);  // Challenge!
 #define O_RDWR 0x0002    /* open for reading and writing */
 #define O_ACCMODE 0x0003 /* mask for above modes */
 
-#define O_CREAT 0x0100 /* create if nonexistent */
-#define O_TRUNC 0x0200 /* truncate to zero length */
-#define O_EXCL 0x0400  /* error if already exists */
-#define O_MKDIR 0x0800 /* create directory, not regular file */
+#define O_CREAT 0x0100   /* create if nonexistent */
+#define O_TRUNC 0x0200   /* truncate to zero length */
+#define O_EXCL 0x0400    /* error if already exists */
+#define O_MKDIR 0x0800   /* create directory, not regular file */
 
-#endif  // !JOS_INC_LIB_H
+#endif                   // !JOS_INC_LIB_H
