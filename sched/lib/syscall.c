@@ -116,11 +116,17 @@ sys_ipc_recv(void *dstva)
 int
 sys_set_process_priority(envid_t envid, int priority)
 {
-	return syscall(SYS_set_process_priority, 1, envid, priority, 0, 0, 0);
+	return syscall(SYS_set_process_priority, 0, envid, priority, 0, 0, 0);
 }
 
 int
 sys_get_process_priority(envid_t envid)
 {
-	return syscall(SYS_get_process_priority, 1, envid, 0, 0, 0, 0);
+	return syscall(SYS_get_process_priority, 0, envid, 0, 0, 0, 0);
+}
+
+int
+sys_decrement_priority(envid_t envid)
+{
+	return syscall(SYS_decrement_priority, 0, envid, 0, 0, 0, 0);
 }

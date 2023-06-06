@@ -218,6 +218,12 @@ fork(void)
 	}
 
 	// Parent
+	cprintf("Prueba de FORK: %d\n", sys_getenvid());
+#ifdef C_P
+	sys_decrement_priority(sys_getenvid());
+	thisenv = &envs[ENVX(sys_getenvid())];
+#endif
+	// Parent
 	uint32_t pnum = 0;
 	uint32_t pnum_end = (UTOP >> PGSHIFT);
 

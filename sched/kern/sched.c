@@ -6,11 +6,13 @@
 #include <kern/monitor.h>
 
 void sched_halt(void);
-
+int prioridad = 3;
+int scheduler_calls = 0;
 // Choose a user environment to run and run it.
 void
 sched_yield(void)
 {
+	scheduler_calls++;
 	struct Env *idle = curenv;
 
 	// Implement simple round-robin scheduling.
@@ -27,6 +29,8 @@ sched_yield(void)
 	// another CPU (env_status == ENV_RUNNING). If there are
 	// no runnable environments, simply drop through to the code
 	// below to halt the cpu.
+
+#ifdef R_R
 	int start_index = 0;
 
 	if (idle != NULL) {
@@ -51,11 +55,49 @@ sched_yield(void)
 		j++;
 	}
 
+#endif
 
-	if (idle && idle->env_status == ENV_RUNNING) {
-		env_run(idle);
+#ifdef C_P
+	size_t env_id = 0;
+
+	if (curenv)  // Si no hay curenv, env_id = 0
+		env_id = ENVX(curenv->env_id) +
+		         1;  // Calculo el index al env_id actual con ENVX(), y tomo el siguiente
+
+	int j = 0;
+
+	int start_index = env_id;
+	while (start_index < NENV) {
+		if (envs[start_index].env_status == ENV_RUNNABLE &&
+		    envs[start_index].priority > j)
+			j = envs[start_index].priority;
+
+
+		if (envs[start_index].env_status == ENV_RUNNABLE &&
+		    envs[start_index].priority == prioridad) {
+			env_run(&envs[start_index]);
+		}
+		start_index++;
 	}
 
+	int k = 0;
+	while (k < start_index) {
+		if (envs[k].env_status == ENV_RUNNABLE && envs[k].priority > j)
+			j = envs[k].priority;
+
+		if (envs[k].env_status == ENV_RUNNABLE &&
+		    envs[k].priority == prioridad) {
+			env_run(&envs[k]);
+		}
+		k++;
+	}
+	cprintf("La prioridad GLOBAL anterior es: %d\n", prioridad);
+	prioridad = j;
+	cprintf("La prioridad GLOBAL ahora es: %d\n", prioridad);
+#endif
+
+	if (curenv && curenv->env_status == ENV_RUNNING)
+		env_run(curenv);
 
 	// sched_halt never returns
 	sched_halt();
