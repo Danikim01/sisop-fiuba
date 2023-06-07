@@ -61,7 +61,6 @@ struct Env {
 	int env_ipc_perm;        // Perm of page mapping received
 
 	int env_amount_of_executions;
-	int env_amount_interruptions;
 };
 
 #endif  // !JOS_INC_ENV_H

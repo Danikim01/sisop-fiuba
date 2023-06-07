@@ -218,7 +218,7 @@ fork(void)
 	}
 
 	// Parent
-	cprintf("Prueba de FORK: %d\n", sys_getenvid());
+	// cprintf("Prueba de FORK: %d\n", sys_getenvid());
 #ifdef C_P
 	sys_decrement_priority(sys_getenvid());
 	thisenv = &envs[ENVX(sys_getenvid())];

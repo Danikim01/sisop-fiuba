@@ -159,7 +159,7 @@ sys_get_process_priority(envid_t envid)
 static int
 sys_decrement_priority(envid_t envid)
 {
-	cprintf("estoy en la funcion decrement priority\n");
+	// cprintf("estoy en la funcion decrement priority\n");
 	struct Env *dstenv;
 	struct Env *parentEnve;
 	int r, err;
@@ -167,24 +167,24 @@ sys_decrement_priority(envid_t envid)
 	if ((r = envid2env(envid, &dstenv, 0)))
 		return r;
 	envid_t p_id = dstenv->env_parent_id;
-	cprintf("el el pid del proceso actual es %d\n", dstenv->env_id);
-	cprintf("el pid del padre del actual es %d\n", p_id);
-	cprintf("la prioridad del actual es %d\n", dstenv->priority);
+	// cprintf("el el pid del proceso actual es %d\n", dstenv->env_id);
+	// cprintf("el pid del padre del actual es %d\n", p_id);
+	// cprintf("la prioridad del actual es %d\n", dstenv->priority);
 
 	err = envid2env(p_id, &parentEnve, 0);
 
 	if (err == 0 && dstenv->env_parent_id != 0) {
 		dstenv->priority = parentEnve->priority;
-		cprintf("el actual TIENE PADRE: envid %d envid_parent %d \n",
-		        envid,
-		        dstenv->env_parent_id);
+		// cprintf("el actual TIENE PADRE: envid %d envid_parent %d \n",
+		//         envid,
+		//         dstenv->env_parent_id);
 	}
 
 
 	if (dstenv->priority > 1) {
 		dstenv->priority--;
 	}
-	cprintf("la nueva prioridad del actual es %d\n", dstenv->priority);
+	// cprintf("la nueva prioridad del actual es %d\n", dstenv->priority);
 	sys_yield();
 	return 0;
 }

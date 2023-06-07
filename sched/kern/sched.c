@@ -9,6 +9,39 @@ void sched_halt(void);
 int prioridad = 3;
 int scheduler_calls = 0;
 // Choose a user environment to run and run it.
+
+void
+envs_execution_rr(int start, int end)
+{
+	int i = start;
+
+	while (i < end) {
+		if (envs[i].env_status == ENV_RUNNABLE) {
+			env_run(&envs[i]);
+		}
+		i++;
+	}
+}
+
+void
+envs_execution_cp(int start_index, int end, int *j)
+{
+	while (start_index < end) {
+		if (envs[start_index].env_status == ENV_RUNNABLE &&
+		    envs[start_index].priority > (*j))
+			(*j) = envs[start_index].priority;
+
+		if (envs[start_index].env_status == ENV_RUNNABLE &&
+		    envs[start_index].priority == prioridad) {
+			// envs_executed[index_envs_executed] = envs[start_index];
+			index_envs_executed++;
+			envs[start_index].env_amount_of_executions += 1;
+			env_run(&envs[start_index]);
+		}
+		start_index++;
+	}
+}
+
 void
 sched_yield(void)
 {
@@ -29,74 +62,30 @@ sched_yield(void)
 	// another CPU (env_status == ENV_RUNNING). If there are
 	// no runnable environments, simply drop through to the code
 	// below to halt the cpu.
-
-#ifdef R_R
 	int start_index = 0;
 
 	if (idle != NULL) {
 		start_index = ENVX(idle->env_id) + 1;
 	}
 
-	int i = start_index;
+#ifdef R_R
 
-	while (i < NENV) {
-		if (envs[i].env_status == ENV_RUNNABLE) {
-			env_run(&envs[i]);
-		}
-		i++;
-	}
-
-	int j = 0;
-
-	while (j < start_index) {
-		if (envs[j].env_status == ENV_RUNNABLE) {
-			env_run(&envs[j]);
-		}
-		j++;
-	}
+	envs_execution_rr(start_index, NENV);
+	envs_execution_rr(0, start_index);
 
 #endif
 
 #ifdef C_P
-	size_t env_id = 0;
-
-	if (curenv)  // Si no hay curenv, env_id = 0
-		env_id = ENVX(curenv->env_id) +
-		         1;  // Calculo el index al env_id actual con ENVX(), y tomo el siguiente
-
 	int j = 0;
-
-	int start_index = env_id;
-	while (start_index < NENV) {
-		if (envs[start_index].env_status == ENV_RUNNABLE &&
-		    envs[start_index].priority > j)
-			j = envs[start_index].priority;
-
-
-		if (envs[start_index].env_status == ENV_RUNNABLE &&
-		    envs[start_index].priority == prioridad) {
-			env_run(&envs[start_index]);
-		}
-		start_index++;
-	}
-
-	int k = 0;
-	while (k < start_index) {
-		if (envs[k].env_status == ENV_RUNNABLE && envs[k].priority > j)
-			j = envs[k].priority;
-
-		if (envs[k].env_status == ENV_RUNNABLE &&
-		    envs[k].priority == prioridad) {
-			env_run(&envs[k]);
-		}
-		k++;
-	}
-	cprintf("La prioridad GLOBAL anterior es: %d\n", prioridad);
+	envs_execution_cp(start_index, NENV, &j);
+	envs_execution_cp(0, start_index, &j);
+	// cprintf("La prioridad GLOBAL anterior es: %d\n", prioridad);
 	prioridad = j;
-	cprintf("La prioridad GLOBAL ahora es: %d\n", prioridad);
+	// cprintf("La prioridad GLOBAL ahora es: %d\n", prioridad);
 #endif
 
-	if (curenv && curenv->env_status == ENV_RUNNING)
+	if (curenv && curenv->env_status == ENV_RUNNING &&
+	    (cpunum() == curenv->env_cpunum))
 		env_run(curenv);
 
 	// sched_halt never returns

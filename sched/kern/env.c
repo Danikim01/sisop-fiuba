@@ -19,7 +19,10 @@ struct Env *envs = NULL;           // All environments
 static struct Env *env_free_list;  // Free environment list
                                    // (linked by Env->env_link)
 
-#define ENVGENSHIFT 12             // >= LOGNENV
+struct Env *envs_executed = NULL;  // All environments
+int index_envs_executed = 0;
+
+#define ENVGENSHIFT 12  // >= LOGNENV
 
 // Global descriptor table.
 //
@@ -228,7 +231,7 @@ env_alloc(struct Env **newenv_store, envid_t parent_id)
 	e->env_status = ENV_RUNNABLE;
 	e->env_runs = 0;
 	e->priority = 3;
-
+	e->env_amount_of_executions = 0;
 	// Clear out all the saved register state,
 	// to prevent the register values
 	// of a prior environment inhabiting this Env structure

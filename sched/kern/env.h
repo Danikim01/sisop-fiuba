@@ -7,6 +7,8 @@
 #include <kern/cpu.h>
 
 extern struct Env *envs;           // All environments
+extern struct Env *envs_executed;  // All environments executed
+extern int index_envs_executed;    // Amount of environments executed
 #define curenv (thiscpu->cpu_env)  // Current environment
 extern struct Segdesc gdt[];
 
