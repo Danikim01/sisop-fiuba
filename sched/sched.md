@@ -1,4 +1,4 @@
-# sched
+# TP3 : Scheduling
 
 Lugar para respuestas en prosa, seguimientos con GDB y documentación del TP.
 
@@ -8,7 +8,7 @@ CFLAG += -D R_R para RR
 
 CFLAG += -D C_P para scheduler con prioridades
 
-Explicacion de la implementacion de sched_yield() en sched.c:
+# Explicacion de la implementacion de sched_yield() en sched.c:
 
 Al llamar a sched_yield(), se incrementa el contador scheduler_calls para realizar un seguimiento del número de llamadas al scheduler.
 
@@ -25,7 +25,7 @@ Después de la ejecución de envs_execution_cp(), la variable j contiene la prio
 
 En resumen, el scheduler busca los entornos ejecutables con la prioridad más alta y los ejecuta. Después de cada llamada a sched_yield(), se actualiza la prioridad global con la prioridad más alta encontrada durante la búsqueda. Esto asegura que los entornos con prioridad más alta se ejecuten antes que los de prioridad más baja.
 
-Test para la parte 3
+# Tests para la parte 3
 
 Para testear el scheduler con prioridades se agregaron 6 procesos (dentro de kern/init.c). A cada uno se le seteo una determinada prioridad.
 Se ejecuto sched_yield() para ver como se comporta el planificador.
@@ -124,3 +124,22 @@ En cuanto a las estadisticas que se quisieron mostrar:
 
 - Cantidad de cambios de contexto
 - Cantidad de llamadas al scheduler
+
+# Seguimientos hechos en GDB
+
+1 - Estado de los registros al inicio de la llamada a context_switch
+
+![](/sched/Capturas/Imagen1.png)
+![](/sched/Capturas/Imagen2.png)
+
+2 - Estado del stack al inicio de la llamada a context_switch
+
+![](/sched/Capturas/Imagen3.png)
+
+3- Como cambia el stack a medida que avanzan las instrucciones
+![](/sched/Capturas/Imagen4.png)
+![](/sched/Capturas/Imagen5.png)
+
+4 - Como se modifican los registros luego de ejecutar iret
+
+![](/sched/Capturas/Imagen6.png)
