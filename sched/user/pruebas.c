@@ -1,20 +1,17 @@
 #include <inc/lib.h>
 
+
 void
 umain(int argc, char **argv)
 {
-		int i, id;
-
-	// fork the first prime process in the chain
-	envid_t parent = sys_getenvid();
+	int i, id;
 	envid_t hijo;
+	envid_t parent = sys_getenvid();
 	int priority = sys_get_process_priority(parent);
 	cprintf("La PRIORIDAD de padre es: %d su PID %d \n",
 	        priority,
 	        sys_getenvid());
-
-	// cprintf("La NUEVA PRIORIDAD de padre es: %d\n",
-	//         sys_get_process_priority(parent));
+	// sys_reduce_priority(parent);
 
 	if ((id = fork()) < 0)
 		panic("fork: %e", id);

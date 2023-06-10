@@ -28,14 +28,13 @@ envs_execution_cp(int start_index, int end, int *j)
 {
 	while (start_index < end) {
 		if (envs[start_index].env_status == ENV_RUNNABLE &&
-		    envs[start_index].priority > (*j))
+		    envs[start_index].priority > (*j)) {
 			(*j) = envs[start_index].priority;
+		}
 
 		if (envs[start_index].env_status == ENV_RUNNABLE &&
 		    envs[start_index].priority == prioridad) {
-			// envs_executed[index_envs_executed] = envs[start_index];
-			index_envs_executed++;
-			envs[start_index].env_amount_of_executions += 1;
+			amount_context_switch++;
 			env_run(&envs[start_index]);
 		}
 		start_index++;
@@ -128,6 +127,11 @@ sched_halt(void)
 
 	// Once the scheduler has finishied it's work, print statistics on
 	// performance. Your code here
+
+	cprintf("\nMostrando estadisticas scheduler: \n\n");
+	cprintf("Llamadas al scheduler: %d \n", scheduler_calls);
+	cprintf("Cantidad de context switches:%d\n", amount_context_switch);
+
 
 	// Reset stack pointer, enable interrupts and then halt.
 	asm volatile("movl $0, %%ebp\n"

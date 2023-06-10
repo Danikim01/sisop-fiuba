@@ -126,7 +126,7 @@ sys_get_process_priority(envid_t envid)
 }
 
 int
-sys_decrement_priority(envid_t envid)
+sys_reduce_priority(envid_t envid)
 {
-	return syscall(SYS_decrement_priority, 0, envid, 0, 0, 0, 0);
+	return syscall(SYS_reduce_priority, 0, envid, 0, 0, 0, 0);
 }

@@ -16,10 +16,10 @@ enum {
 	SYS_yield,
 	SYS_ipc_try_send,
 	SYS_ipc_recv,
-	NSYSCALLS,
 	SYS_set_process_priority,
 	SYS_get_process_priority,
-	SYS_decrement_priority
+	SYS_reduce_priority,
+	NSYSCALLS
 };
 
 #endif /* !JOS_INC_SYSCALL_H */

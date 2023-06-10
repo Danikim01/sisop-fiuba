@@ -59,7 +59,7 @@ env_page_alloc(struct Env *env, void *va, int perm)
 
 
 static int
-env_page_map(struct Env *srcenv, void *srcva, struct Env *dstenv, void *dstva, int perm)
+env_page_map(struct Env *srcenv, void *srcva, struct Env *son_env, void *dstva, int perm)
 {
 	pte_t *srcpte;
 	struct PageInfo *page = page_lookup(srcenv->env_pgdir, srcva, &srcpte);
@@ -69,7 +69,7 @@ env_page_map(struct Env *srcenv, void *srcva, struct Env *dstenv, void *dstva, i
 	if ((perm & PTE_W) & ~(PTE_W & *srcpte))
 		return -E_INVAL;
 
-	return page_insert(dstenv->env_pgdir, page, dstva, perm);
+	return page_insert(son_env->env_pgdir, page, dstva, perm);
 }
 
 
@@ -133,58 +133,53 @@ sys_yield(void)
 static int
 sys_set_process_priority(envid_t envid, int priority)
 {
+	if (priority > 3 || priority < 1)
+		return -E_INVAL;
+
 	struct Env *e;
 	int result = envid2env(envid, &e, 1);
 
 	// Verifica que el envid sea valido y asigna a "e" el entorno correspondiente al envid.
-	if (envid2env(envid, &e, 1) != 0)
+	if (envid2env(envid, &e, 0) != 0)
 		return result;
 
 	e->priority = priority;
 	return 0;
 }
 
+
 static int
 sys_get_process_priority(envid_t envid)
 {
 	struct Env *e;
-	int result = envid2env(envid, &e, 1);
+	int result = envid2env(envid, &e, 0);
 
-	if (envid2env(envid, &e, 1) != 0)
+	if (result != 0)
 		return result;
 
 	return e->priority;
 }
 
 static int
-sys_decrement_priority(envid_t envid)
+sys_reduce_priority(envid_t envid)
 {
-	// cprintf("estoy en la funcion decrement priority\n");
-	struct Env *dstenv;
-	struct Env *parentEnve;
-	int r, err;
+	struct Env *son_env;
+	struct Env *parent_env;
+	int result, parent_result;
 
-	if ((r = envid2env(envid, &dstenv, 0)))
-		return r;
-	envid_t p_id = dstenv->env_parent_id;
-	// cprintf("el el pid del proceso actual es %d\n", dstenv->env_id);
-	// cprintf("el pid del padre del actual es %d\n", p_id);
-	// cprintf("la prioridad del actual es %d\n", dstenv->priority);
+	if ((result = envid2env(envid, &son_env, 0)))
+		return result;
+	envid_t p_id = son_env->env_parent_id;
+	parent_result = envid2env(p_id, &parent_env, 0);
 
-	err = envid2env(p_id, &parentEnve, 0);
+	son_env->priority = (parent_result == 0 && son_env->env_parent_id != 0)
+	                            ? parent_env->priority
+	                            : son_env->priority;
 
-	if (err == 0 && dstenv->env_parent_id != 0) {
-		dstenv->priority = parentEnve->priority;
-		// cprintf("el actual TIENE PADRE: envid %d envid_parent %d \n",
-		//         envid,
-		//         dstenv->env_parent_id);
-	}
+	son_env->priority = (son_env->priority > 1) ? (son_env->priority - 1)
+	                                            : son_env->priority;
 
 
-	if (dstenv->priority > 1) {
-		dstenv->priority--;
-	}
-	// cprintf("la nueva prioridad del actual es %d\n", dstenv->priority);
 	sys_yield();
 	return 0;
 }
@@ -340,17 +335,17 @@ sys_page_map(envid_t srcenvid, void *srcva, envid_t dstenvid, void *dstva, int p
 	int r;  // For errors
 
 	struct Env *srcenv;
-	struct Env *dstenv;
+	struct Env *son_env;
 	if ((r = envid2env(srcenvid, &srcenv, 1)))
 		return r;
-	if ((r = envid2env(dstenvid, &dstenv, 1)))
+	if ((r = envid2env(dstenvid, &son_env, 1)))
 		return r;
 
-	// cprintf("[%08x] dstenv %08x\n", dstenv->env_id, dstva);
+	// cprintf("[%08x] son_env %08x\n", son_env->env_id, dstva);
 	// cprintf("[%08x] srcenv %08x\n", srcenv->env_id, srcva);
 
 
-	return env_page_map(srcenv, srcva, dstenv, dstva, PTE_P | PTE_U | perm);
+	return env_page_map(srcenv, srcva, son_env, dstva, PTE_P | PTE_U | perm);
 }
 
 // Unmap the page of memory at 'va' in the address space of 'envid'.
@@ -419,16 +414,16 @@ sys_page_unmap(envid_t envid, void *va)
 static int
 sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 {
-	struct Env *dstenv;
+	struct Env *son_env;
 	int r;
-	if ((r = envid2env(envid, &dstenv, 0)))
+	if ((r = envid2env(envid, &son_env, 0)))
 		return r;
 
-	if (!dstenv->env_ipc_recving)
+	if (!son_env->env_ipc_recving)
 		return -E_IPC_NOT_RECV;
 
 	if (((uint32_t) srcva >= UTOP)) {
-		dstenv->env_ipc_perm = 0;
+		son_env->env_ipc_perm = 0;
 		goto bail;
 	}
 
@@ -443,22 +438,22 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 
 	perm |= PTE_U | PTE_P;
 
-	if (dstenv->env_ipc_dstva) {
-		if ((r = env_page_alloc(dstenv, dstenv->env_ipc_dstva, perm)) < 0)
+	if (son_env->env_ipc_dstva) {
+		if ((r = env_page_alloc(son_env, son_env->env_ipc_dstva, perm)) < 0)
 			return r;
 		if ((r = env_page_map(
-		             curenv, srcva, dstenv, dstenv->env_ipc_dstva, perm)) <
+		             curenv, srcva, son_env, son_env->env_ipc_dstva, perm)) <
 		    0)
 			return r;
-		dstenv->env_ipc_perm = perm;
+		son_env->env_ipc_perm = perm;
 	}
 
 bail:
-	dstenv->env_ipc_from = (envid_t) curenv->env_id;
-	dstenv->env_ipc_recving = false;
-	dstenv->env_ipc_value = value;
-	dstenv->env_tf.tf_regs.reg_eax = 0;
-	dstenv->env_status = ENV_RUNNABLE;
+	son_env->env_ipc_from = (envid_t) curenv->env_id;
+	son_env->env_ipc_recving = false;
+	son_env->env_ipc_value = value;
+	son_env->env_tf.tf_regs.reg_eax = 0;
+	son_env->env_status = ENV_RUNNABLE;
 	return 0;
 }
 
@@ -527,8 +522,8 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 		return sys_set_process_priority(a1, a2);
 	case SYS_get_process_priority:
 		return sys_get_process_priority(a1);
-	case SYS_decrement_priority:
-		return sys_decrement_priority(a1);
+	case SYS_reduce_priority:
+		return sys_reduce_priority(a1);
 	default:
 		return -E_INVAL;
 	}

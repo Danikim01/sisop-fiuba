@@ -209,6 +209,8 @@ fork(void)
 	set_pgfault_handler(pgfault);
 
 	envid_t envid = sys_exofork();
+
+
 	if (envid < 0)
 		panic("sys_exofork: %e", envid);
 	if (envid == 0) {
@@ -220,8 +222,12 @@ fork(void)
 	// Parent
 	// cprintf("Prueba de FORK: %d\n", sys_getenvid());
 #ifdef C_P
-	sys_decrement_priority(sys_getenvid());
-	thisenv = &envs[ENVX(sys_getenvid())];
+	envid_t env_id = sys_getenvid();
+	sys_reduce_priority(env_id);
+	cprintf("La nueva prioridad (reducida) del proceso %d es %d\n",
+	        env_id,
+	        envs[ENVX(env_id)].priority);
+
 #endif
 	// Parent
 	uint32_t pnum = 0;

@@ -79,7 +79,10 @@ KERN_BINFILES +=	user/idle \
 			user/pingpong \
 			user/pingpongs \
 			user/pruebas \
-			user/primes
+			user/primes \
+			user/reduce_prio_program1 \
+			user/reduce_prio_program2 \
+			user/reduce_prio_program3 
 KERN_OBJFILES := $(patsubst %.c, $(OBJDIR)/%.o, $(KERN_SRCFILES))
 KERN_OBJFILES := $(patsubst %.S, $(OBJDIR)/%.o, $(KERN_OBJFILES))
 KERN_OBJFILES := $(patsubst $(OBJDIR)/lib/%, $(OBJDIR)/kern/%, $(KERN_OBJFILES))
