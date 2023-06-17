@@ -8,7 +8,73 @@
 #include <sys/file.h>
 #include <string.h>
 #include <stdlib.h>
+#include <limits.h>
 #include <errno.h>
+
+#define BLOCK_SIZE 4096
+
+#define MAX_CONTENIDO 100
+#define MAX_DIRECTORIOS 5
+#define MAX_NOMBRE 8
+#define MAX_INODOS 80
+#define MAX_BLOQUES 64
+#define INODE_BLOCKS 10
+static char fisop_file_contenidos[MAX_CONTENIDO] = "hola fisopfs!\n";
+
+struct block {
+	char contenido[BLOCK_SIZE];
+};
+
+struct inode {
+	char name[MAX_NOMBRE];
+	size_t file_size;
+	// Propietario y derechos de acceso
+	uid_t owner;
+	mode_t permissions;
+
+	// Tiempos de acceso y modificación
+	time_t access_time;
+	time_t modified_time;
+
+	// Bloques a los que hace referencia este inodo
+	struct block *blocks[INODE_BLOCKS];
+};
+
+struct superblock {
+	// Cantidad de bloques en el disco
+	size_t block_count;
+
+	// Cantidad de bloques libres
+	size_t free_block_count;
+
+	// Cantidad de inodos en el disco
+	size_t inode_count;
+
+	// Cantidad de inodos libres
+	size_t free_inode_count;
+
+	// Bitmap de bloques libres
+	struct block *free_block_bitmap;
+
+	// Bitmap de inodos libres
+	struct block *free_inode_bitmap;
+
+	// Inodos del disco (16 inodos en 5 bloque para inodos)
+	struct inode *inodes[MAX_INODOS];
+
+	// Bloques del disco
+	struct block *blocks[MAX_BLOQUES];
+};
+
+struct superblock superblock;
+struct inode *inodes;
+struct block *blocks;
+
+void
+initialize_file_system()
+{
+	// inicializar los campos del file system
+}
 
 static int
 fisopfs_getattr(const char *path, struct stat *st)
@@ -25,6 +91,7 @@ fisopfs_getattr(const char *path, struct stat *st)
 		st->st_size = 2048;
 		st->st_nlink = 1;
 	} else {
+		printf("ERROR\n");
 		return -ENOENT;
 	}
 
@@ -53,8 +120,13 @@ fisopfs_readdir(const char *path,
 	return -ENOENT;
 }
 
-#define MAX_CONTENIDO 100
-static char fisop_file_contenidos[MAX_CONTENIDO] = "hola fisopfs!\n";
+
+static int
+fisopfs_mkdir(const char *path, mode_t mode)
+{
+	printf("[debug] fisopfs_mkdir - path: %s - mode: %d\n", path, mode);
+	return 0;
+}
 
 static int
 fisopfs_read(const char *path,
@@ -86,6 +158,7 @@ static struct fuse_operations operations = {
 	.getattr = fisopfs_getattr,
 	.readdir = fisopfs_readdir,
 	.read = fisopfs_read,
+	.mkdir = fisopfs_mkdir,
 };
 
 int
