@@ -19,7 +19,7 @@
 #define MAX_INODOS 80
 #define MAX_BLOQUES 64
 #define INODE_BLOCKS 10
-static char fisop_file_contenidos[MAX_CONTENIDO] = "hola fisopfs!\n";
+static char fisop_file_contenidos[MAX_CONTENIDO] = "READING: hola fisopfs!\n";
 
 struct block {
 	char contenido[BLOCK_SIZE];
@@ -91,7 +91,7 @@ fisopfs_getattr(const char *path, struct stat *st)
 		st->st_size = 2048;
 		st->st_nlink = 1;
 	} else {
-		printf("ERROR\n");
+		printf("NUESTRO: ERROR\n");
 		return -ENOENT;
 	}
 
@@ -154,11 +154,29 @@ fisopfs_read(const char *path,
 	return size;
 }
 
+static int
+fisopfs_create(const char *path, mode_t mode, struct fuse_file_info *fi)
+{
+	int fd;
+	printf("[debug] fisopfs_create - path: %s - mode: %d\n", path, mode);
+	// TODO: Add custom logic for the underlying storage.
+	//(creating entries in some data structure that represents the files in the filesystem)
+
+	fd = open(path, fi->flags, mode);
+	if (fd == -1) {
+		return -errno;
+	}
+
+	close(fd);
+	return 0;
+}
+
 static struct fuse_operations operations = {
 	.getattr = fisopfs_getattr,
 	.readdir = fisopfs_readdir,
 	.read = fisopfs_read,
 	.mkdir = fisopfs_mkdir,
+	.create = fisopfs_create,
 };
 
 int
