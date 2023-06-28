@@ -22,6 +22,7 @@ main(int argc, char *argv[])
 	              O_CREAT | O_WRONLY,
 	              S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
+	printf("foo\n");
 	if (fd == -1) {
 		perror("open");
 		return 1;
