@@ -9,6 +9,7 @@
     "numeric": "c",
     "ostream": "c",
     "streambuf": "c",
-    "tuple": "c"
+    "tuple": "c",
+    "unistd.h": "c"
   }
 }
