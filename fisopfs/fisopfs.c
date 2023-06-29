@@ -23,6 +23,8 @@
 struct block {
 	bool is_free;
 	char content[BLOCKSIZE];
+	int inode_index;  // indice del inodo que apunta a este bloque (es -1 si
+	                  // no hay ningun inodo que apunte a este bloque)
 };
 
 struct inode {
@@ -33,19 +35,13 @@ struct inode {
 	time_t data_of_access;
 	char name[MAX_NAME];
 	uid_t st_uid;
-	struct block *data[DATABLOCKMAX];  // apunta a los bloques de data (un
-	                                   // inodo puede tener mas de un bloque de data)
+	struct block data[DATABLOCKMAX];  // apunta a los bloques de data (un
+	                                  // inodo puede tener mas de un bloque de data)
 	bool is_file;  // 0 (false) es directorio, 1 (true) es archivo regular
 	bool is_free;
 };
 
-struct superblock {
-	int inode_amount;
-	int data_blocks_amount;
-};
 
-
-struct superblock SB;
 struct block data_blocks[BLOCK_DATA_NUMBER];
 struct inode inodes[CANT_INODOS];
 
@@ -164,7 +160,6 @@ fisopfs_readdir(const char *path,
 	return 0;
 }
 
-
 static int
 fisop_read(const char *path,
            char *buffer,
@@ -172,7 +167,7 @@ fisop_read(const char *path,
            off_t offset,
            struct fuse_file_info *fi)
 {
-	printf("[debug] fisopfs_read(%s, %lu, %lu)\n", path, offset, size);
+	printf("[debug] fisop_read(%s, %lu, %lu)\n", path, offset, size);
 
 	int indice = search_inode_with_path(path);
 	printf("indice: %d\n", indice);
@@ -200,7 +195,7 @@ fisop_read(const char *path,
 	while (read_size > 0 && block_offset < DATABLOCKMAX &&
 	       !inodes[indice].is_free) {
 		printf("foo\n");
-		struct block *block = inodes[indice].data[block_offset];
+		struct block *block = &inodes[indice].data[block_offset];
 		printf("foo2\n");
 		size_t bytes_to_read =
 		        (read_size < (BLOCKSIZE - block_offset_within_block))
@@ -213,7 +208,6 @@ fisop_read(const char *path,
 		memcpy(buffer + bytes_read,
 		       block->content + block_offset_within_block,
 		       bytes_to_read);
-
 
 		bytes_read += bytes_to_read;
 		read_size -= bytes_to_read;
@@ -279,7 +273,7 @@ fisop_write(const char *path,
 
 	if ((inodes[indice].mode & S_IWUSR) == 0) {
 		errno = EACCES;
-		return EACCES;
+		return -EACCES;
 	}
 
 	inodes[indice].size = minimo(offset + size, BLOCKSIZE * DATABLOCKMAX);
@@ -289,7 +283,7 @@ fisop_write(const char *path,
 		if (!inodes[indice].is_free) {
 			printf("Escribo:...\n");
 			struct block *bloque =
-			        inodes[indice].data[offset / BLOCKSIZE];
+			        &inodes[indice].data[offset / BLOCKSIZE];
 			memcpy(bloque->content + (offset % BLOCKSIZE),
 			       message,
 			       minimo(size, BLOCKSIZE - offset % BLOCKSIZE));
@@ -306,10 +300,11 @@ fisop_write(const char *path,
 	}
 	size = size > 0 ? size : 0;
 	printf("The message is %s\n", message);
-	strncpy(inodes[indice].data[0]->content, message, size);
+	strncpy(inodes[indice].data[offset / BLOCKSIZE].content, message, size);
 	// return the written bytes
 	return size;
 }
+
 
 static int
 fisop_removefile(const char *path)
@@ -331,7 +326,7 @@ fisop_removefile(const char *path)
 	for (int j = 0; j < DATABLOCKMAX; j++) {
 		if (inodes[indice].is_free == false) {
 			printf("Borrando archivo...\n");
-			inodes[indice].data[j] = NULL;
+			// inodes[indice].data[j] = NULL;
 			memset(data_blocks[j].content, 0, BLOCKSIZE);
 			memset(&data_blocks[j], 0, sizeof(struct block));
 			data_blocks[j].is_free = true;
@@ -393,7 +388,7 @@ fisop_removedir(const char *path)
 	for (int j = 0; j < DATABLOCKMAX; j++) {
 		if (inodes[indice].is_free == false) {
 			printf("En rmdir:\n");
-			inodes[indice].data[j] = NULL;
+			// inodes[indice].data[j] = NULL;
 			memset(data_blocks[j].content, 0, BLOCKSIZE);
 			memset(&data_blocks[j], 0, sizeof(struct block));
 			data_blocks[j].is_free = true;
@@ -423,12 +418,6 @@ update_file()
 {
 	FILE *file;
 	file = fopen(archivo, "w");
-
-	if (fwrite(&SB, sizeof(SB), 1, file) < 0) {
-		printf("Error al escribir el superbloque\n");
-		fclose(file);
-		return;
-	}
 
 	for (int i = 0; i < BLOCK_DATA_NUMBER; i++) {
 		if (fwrite(&data_blocks[i], sizeof(struct block), 1, file) < 0) {
@@ -530,24 +519,29 @@ crear_archivo(const char *path, mode_t mode, bool tipo)
 
 	// Marcarlo como ocupado
 	data_blocks[block_index].is_free = false;  // inodo ocupado
-	inodes[inode_index].is_free = false;       // data ocupado
+	data_blocks[block_index].inode_index = inode_index;
 
+	printf("data_blocks[block_index].inode_index = %d\n", inode_index);
 	// Asignarle toda la info correspondiente
-	inodes[inode_index].mode = mode;
-	inodes[inode_index].date_of_creation = time(NULL);
-	inodes[inode_index].data_of_access = time(NULL);
-	inodes[inode_index].date_of_modification = time(NULL);
-	inodes[inode_index].data[0] =
-	        &data_blocks[block_index];  // asigna el primer bloque al bloque libre encontrado
-	inodes[inode_index].st_uid = getuid();
-	inodes[inode_index].size = 0;
-	inodes[inode_index].is_file = tipo;
-	inodes[inode_index].is_free = false;
+	struct inode archivo = inodes[inode_index];
+	archivo.mode = mode;
+	archivo.date_of_creation = time(NULL);
+	archivo.data_of_access = time(NULL);
+	archivo.date_of_modification = inodes[inode_index].date_of_creation;
+	archivo.data[0] =
+	        data_blocks[block_index];  // asigna el primer bloque al bloque libre encontrado
 
-	strcpy(inodes[inode_index].name, path);
 
+	archivo.st_uid = getuid();
+	archivo.size = 0;
+	archivo.is_file = tipo;
+	archivo.is_free = false;
+	strcpy(archivo.name, path);
+	printf("aaaaaaaaaaaaaaaaaaaaaa\n");
+	inodes[inode_index] = archivo;
+	printf("El indice es %d\n", inodes[inode_index].data[0].inode_index);
 	// Establecer los tiempos de acceso y modificación del archivo
-	update_time(path);
+	// update_time(path);
 
 	return 0;
 }
@@ -594,28 +588,18 @@ comp_str(const char *string1, char *string2)
 	return 1;
 }
 
-void
-create_sb()
-{
-	SB.data_blocks_amount = BLOCK_DATA_NUMBER;
-	SB.inode_amount = CANT_INODOS;
-	// for (int i = 0; i < BLOCK_DATA_NUMBER; i++) {
-	// 	SB.bitmap_data[i] = 0;
-	// }
-	// for (int i = 0; i < CANT_INODOS; i++) {
-	// 	SB.bitmap_inodes[i] = 0;
-	// }
-}
 
 // inicializa el archivo donde se guardan los data (superbloque, inodes y
 // bloques de data) y los carga en memoria
 void
 init_file()
 {
-	create_sb();
 	int valor = 0;
-	struct superblock sb;
 	FILE *file;
+	struct inode *inodes_aux;
+	struct block *info;
+	inodes_aux = calloc(sizeof(struct inode), CANT_INODOS);
+	info = calloc(sizeof(struct block), BLOCK_DATA_NUMBER);
 
 	file = fopen(archivo, "w");
 	if (file == NULL) {
@@ -623,29 +607,22 @@ init_file()
 		return;
 	}
 
-	memset(&sb, 0, sizeof(struct superblock));
-	sb.data_blocks_amount = BLOCK_DATA_NUMBER;
-	sb.inode_amount = CANT_INODOS;
-
-	valor = fwrite(&sb, sizeof(struct superblock), 1, file);
-	if (valor < 0) {
-		printf("Write error\n");
-		fclose(file);
-		return;
-	}
 
 	for (int i = 0; i < BLOCK_DATA_NUMBER; i++) {
-		memset(&data_blocks[i], 0, sizeof(struct block));
-		data_blocks[i].is_free = true;
+		// memset(&data_blocks[i], 0, sizeof(struct block));
+		info[i].is_free = true;
+		info[i].inode_index = -1;
+		memcpy(&data_blocks[i], &info[i], sizeof(struct block));
 	}
 
 	for (int i = 0; i < CANT_INODOS; i++) {
-		memset(&inodes[i], 0, sizeof(struct inode));
-		inodes[i].is_free = true;
+		// memset(&inodes[i], 0, sizeof(struct inode));
+		inodes_aux[i].is_free = true;
+		memcpy(&inodes[i], &inodes_aux[i], sizeof(struct inode));
 	}
 
 	for (int i = 0; i < BLOCK_DATA_NUMBER; i++) {
-		valor = fwrite(&data_blocks[i], sizeof(struct block), 1, file);
+		valor = fwrite(&info[i], sizeof(struct block), 1, file);
 		if (valor < 0) {
 			printf("Write error\n");
 			fclose(file);
@@ -654,7 +631,7 @@ init_file()
 	}
 
 	for (int i = 0; i < CANT_INODOS; i++) {
-		valor = fwrite(&inodes[i], sizeof(struct inode), 1, file);
+		valor = fwrite(&inodes_aux[i], sizeof(struct inode), 1, file);
 		if (valor < 0) {
 			printf("Write error\n");
 			fclose(file);
@@ -662,6 +639,8 @@ init_file()
 		}
 	}
 
+	free(inodes_aux);
+	free(info);
 	fclose(file);
 }
 
@@ -670,51 +649,33 @@ void
 load_file_from_disk(FILE *file)
 {
 	int valor = 0;
-	valor = fread(&SB, sizeof(SB), 1, file);
-	if (valor < 0) {
-		printf("He fallado\n");
-	}
-
-	// for (int i = 0; i < BLOCK_DATA_NUMBER; i++) {
-	// 	valor = fread(&SB.bitmap_data[i], sizeof(SB.bitmap_data[i]), 1,
-	// file); 	if (valor < 0) { 		printf("He fallado\n");
-	// 	}
-	// }
-	// for (int i = 0; i < CANT_INODOS; i++) {
-	// 	valor = fread(&SB.bitmap_inodes[i],
-	// 	              sizeof(SB.bitmap_inodes[i]),
-	// 	              1,
-	// 	              file);
-	// 	if (valor < 0) {
-	// 		printf("He fallado\n");
-	// 	}
-	// }
 
 	for (int i = 0; i < BLOCK_DATA_NUMBER; i++) {
 		valor = fread(&data_blocks[i], sizeof(data_blocks[i]), 1, file);
 		// print if datablocks is not free
-		if (!data_blocks[i].is_free)
-			printf("data_blocks[%d].is not free = %d\n",
-			       i,
-			       data_blocks[i].is_free);
+		// if (!data_blocks[i].is_free)
+		// 	printf("data_blocks[%d].is not free = %d\n",
+		// 	       i,
+		// 	       data_blocks[i].is_free);
 		if (valor < 0) {
 			printf("He fallado\n");
 		}
 	}
 
 	for (int i = 0; i < CANT_INODOS; i++) {
+		memset(&inodes[i].data, 0, sizeof(struct inode));
 		valor = fread(&inodes[i], sizeof(inodes[i]), 1, file);
-		// print if inodes is not free
-		if (!inodes[i].is_free)
-			printf("inodes[%d].is not free = %d\n",
-			       i,
-			       inodes[i].is_free);
 		if (valor < 0) {
 			printf("He fallado\n");
 		}
+		// for (int j = 0; j < DATABLOCKMAX; j++) {
+		// 	if (!inodes[i].is_free) {
+		// 		int block_index = inodes[i].data[j].inode_index;
+		// 		inodes[i].data[j] = data_blocks[block_index];
+		// 	}
+		// }
 	}
 }
-
 
 // busca en el array de bloques de data un bloque libre y lo asigna al archivo
 int
@@ -723,7 +684,7 @@ buscar_bloque_libre(int indice, int offset)
 	int i = 0;
 	while (i < BLOCK_DATA_NUMBER) {
 		if (&data_blocks[i] != NULL) {
-			inodes[indice].data[offset] = &data_blocks[i];
+			inodes[indice].data[offset] = data_blocks[i];
 			return 0;
 		}
 		i++;
