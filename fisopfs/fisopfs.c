@@ -12,6 +12,7 @@
 #include <errno.h>
 #include <time.h>
 #include <stdbool.h>
+#include <string.h>
 
 #define INODE_AMOUNT 100
 #define BLOCK_DATA_AMOUNT 400
@@ -24,6 +25,8 @@
 struct block {
 	bool is_free;
 	char content[BLOCKSIZE];
+	int inode_index;  // indice del inodo que apunta a este bloque (es -1 si
+	                  // no hay ningun inodo que apunte a este bloque)
 };
 
 struct inode {
@@ -36,17 +39,20 @@ struct inode {
 	uid_t st_uid;
 	struct block data[DATABLOCKMAX];
 	bool is_file;
-	bool is_symlink;
 	bool is_free;
+	int inode_parent_index;
 };
 
 struct block data_blocks[BLOCK_DATA_AMOUNT];
 struct inode inodes[INODE_AMOUNT];
-size_t directories_created = 0;
 char *archivo = "myfs.fisopfs";
 
 int search_inode_with_path(const char *path);
-struct inode create_inode(const char *path, mode_t mode, bool tipo, int block_index);
+struct inode create_inode(const char *path,
+                          mode_t mode,
+                          bool tipo,
+                          int block_index,
+                          int parent_index);
 int create_file(const char *path, mode_t mode, bool tipo);
 int count_slash(const char *name);
 int search_slash(const char *name);
@@ -80,6 +86,7 @@ init_file()
 	for (int i = 0; i < BLOCK_DATA_AMOUNT; i++) {
 		memset(&data_blocks[i], 0, sizeof(struct block));
 		data_blocks[i].is_free = true;
+		data_blocks[i].inode_index = -1;
 	}
 
 	for (int i = 0; i < INODE_AMOUNT; i++) {
@@ -172,7 +179,24 @@ update_file()
 	fclose(file);
 }
 
-#include <string.h>
+int
+amount_of_files_in_dir(const char *path)
+{
+	int amount = 0;
+	if (count_slash(path) == 1) {
+		amount = -1;
+	}
+	int index_dir = search_inode_with_path(path);
+
+	for (int i = 0; i < INODE_AMOUNT; i++) {
+		if (!inodes[i].is_free &&
+		    inodes[i].inode_parent_index == index_dir) {
+			amount++;
+		}
+	}
+	return amount;
+}
+
 
 static int
 fisopfs_getattr(const char *path, struct stat *st)
@@ -196,18 +220,6 @@ fisopfs_getattr(const char *path, struct stat *st)
 			st->st_blksize = BLOCKSIZE;
 			st->st_blocks =
 			        count_blocks_allocated(inodes[indice_inodo]);
-		} else if (inodes[indice_inodo].is_symlink) {
-			st->st_size = strlen(
-			        path);  // Tamaño de la ruta del enlace simbólico
-			st->st_mode =
-			        S_IRUSR | S_IWUSR | S_IXUSR | S_IRWXO |
-			        __S_IFLNK;  // Modo de enlace simbólico con permisos adecuados
-			st->st_nlink = 1;
-			// Obtener la ruta del enlace simbólico utilizando readlink()
-			int result = readlink(path, st->st_size, st->st_size);
-			if (result == -1) {
-				return -errno;
-			}
 		} else {
 			st->st_mode = __S_IFDIR | 0755;
 			st->st_nlink = 2;
@@ -332,20 +344,11 @@ static int
 fisop_createdir(const char *path, mode_t mode)
 {
 	printf("[debug] fisop_createdir(%s) con modo: %d\n", path, mode);
-	// Delimitamos un limite a la cantidad de directorios creados
-	if (directories_created >= MAX_DIRECTORIES) {
-		errno = ENOSPC;
-		return -ENOSPC;
-	}
 	if (strlen(path) > (MAX_NAME_DIR)) {
 		errno = ENAMETOOLONG;
 		return -ENAMETOOLONG;
 	}
-
 	int valor = create_file(path, mode, false);
-	if (valor == 0) {
-		directories_created = directories_created + 1;
-	}
 	return valor;
 }
 
@@ -461,15 +464,21 @@ fisop_removefile(const char *path)
 	}
 
 	for (int j = 0; j < DATABLOCKMAX; j++) {
-		if (inodes[indice].is_free == false) {
-			memset(data_blocks[j].content, 0, BLOCKSIZE);
-			memset(&data_blocks[j], 0, sizeof(struct block));
-			data_blocks[j].is_free = true;
-		}
+		memset(inodes[indice].data[j].content, 0, BLOCKSIZE);
+		memset(&inodes[indice].data[j], 0, sizeof(struct block));
+		inodes[indice].data[j].is_free = true;
 	}
 
 	memset(&inodes[indice], 0, sizeof(struct inode));
 	inodes[indice].is_free = true;
+
+	for (int i = 0; i < BLOCK_DATA_AMOUNT; i++) {
+		if (data_blocks[i].inode_index == indice) {
+			memset(data_blocks[i].content, 0, BLOCKSIZE);
+			memset(&data_blocks[i], 0, sizeof(struct block));
+			data_blocks[i].is_free = true;
+		}
+	}
 
 	update_time(path);
 
@@ -477,16 +486,32 @@ fisop_removefile(const char *path)
 }
 
 
-static void
-remove_directory_blocks(int index)
+int
+remove_directory_blocks(int indice)
 {
+	if (inodes[indice].is_file) {
+		errno = ENOTDIR;
+		return -ENOTDIR;
+	}
+
 	for (int j = 0; j < DATABLOCKMAX; j++) {
-		if (inodes[index].is_free == false) {
-			memset(data_blocks[j].content, 0, BLOCKSIZE);
-			memset(&data_blocks[j], 0, sizeof(struct block));
-			data_blocks[j].is_free = true;
+		memset(inodes[indice].data[j].content, 0, BLOCKSIZE);
+		memset(&inodes[indice].data[j], 0, sizeof(struct block));
+		inodes[indice].data[j].is_free = true;
+	}
+
+	memset(&inodes[indice], 0, sizeof(struct inode));
+	inodes[indice].is_free = true;
+
+	for (int i = 0; i < BLOCK_DATA_AMOUNT; i++) {
+		if (data_blocks[i].inode_index == indice) {
+			memset(data_blocks[i].content, 0, BLOCKSIZE);
+			memset(&data_blocks[i], 0, sizeof(struct block));
+			data_blocks[i].is_free = true;
 		}
 	}
+
+	return 0;
 }
 
 
@@ -517,13 +542,17 @@ fisop_removedir(const char *path)
 		return -ENOTDIR;
 	}
 
-	remove_directory_contents(path);
-	remove_directory_blocks(index);
-	memset(&inodes[index], 0, sizeof(struct inode));
-	inodes[index].is_free = true;
-	directories_created = directories_created - 1;
-	update_time(path);
-	return 0;
+	if (amount_of_files_in_dir(path) == 0) {
+		remove_directory_contents(path);
+		remove_directory_blocks(index);
+		memset(&inodes[index], 0, sizeof(struct inode));
+		inodes[index].is_free = true;
+		update_time(path);
+		return 0;
+	}
+
+	errno = ENOTEMPTY;
+	return -ENOTEMPTY;
 }
 
 static void
@@ -605,7 +634,7 @@ main(int argc, char *argv[])
 }
 
 struct inode
-create_inode(const char *path, mode_t mode, bool tipo, int block_index)
+create_inode(const char *path, mode_t mode, bool tipo, int block_index, int index_parent)
 {
 	struct inode archivo;
 	archivo.mode = mode;
@@ -617,6 +646,7 @@ create_inode(const char *path, mode_t mode, bool tipo, int block_index)
 	archivo.size = 0;
 	archivo.is_file = tipo;
 	archivo.is_free = false;
+	archivo.inode_parent_index = index_parent;
 	strcpy(archivo.name, path);
 	return archivo;
 }
@@ -638,9 +668,18 @@ create_file(const char *path, mode_t mode, bool tipo)
 	if (inode_index >= INODE_AMOUNT || block_index >= BLOCK_DATA_AMOUNT)
 		return -ENOSPC;
 
-	data_blocks[block_index].is_free = false;
+	int index_last_slash = search_slash(path) - 1;
+	char parent_dir_name[MAX_NAME];
+	strncpy(parent_dir_name, path, index_last_slash);
+	parent_dir_name[index_last_slash] = '\0';
+	int index_parent_inode = search_inode_with_path(parent_dir_name);
 
-	inodes[inode_index] = create_inode(path, mode, tipo, block_index);
+
+	data_blocks[block_index].is_free = false;
+	data_blocks[block_index].inode_index = inode_index;
+
+	inodes[inode_index] =
+	        create_inode(path, mode, tipo, block_index, index_parent_inode);
 
 	update_time(path);
 
