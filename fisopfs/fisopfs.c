@@ -17,7 +17,9 @@
 #define BLOCK_DATA_AMOUNT 400
 #define DATABLOCKMAX 4
 #define BLOCKSIZE 4096
-#define MAX_NAME 60
+#define MAX_NAME 20
+#define MAX_NAME_DIR 15
+#define MAX_DIRECTORIES 5
 
 struct block {
 	bool is_free;
@@ -33,13 +35,14 @@ struct inode {
 	char name[MAX_NAME];
 	uid_t st_uid;
 	struct block data[DATABLOCKMAX];
+	bool is_symlink;
 	bool is_file;
 	bool is_free;
 };
 
 struct block data_blocks[BLOCK_DATA_AMOUNT];
 struct inode inodes[INODE_AMOUNT];
-
+size_t directories_created = 0;
 char *archivo = "myfs.fisopfs";
 
 int search_inode_with_path(const char *path);
@@ -194,12 +197,14 @@ fisopfs_getattr(const char *path, struct stat *st)
 			st->st_mode = __S_IFDIR | 0755;
 			st->st_nlink = 2;
 		}
+
 		st->st_uid = inodes[indice_inodo].st_uid;
 		st->st_gid = getgid();
 		st->st_atime = inodes[indice_inodo].data_of_access;
 		st->st_mtime = inodes[indice_inodo].date_of_modification;
 		st->st_ctime = inodes[indice_inodo].date_of_modification;
 	}
+
 	return 0;
 }
 
@@ -300,6 +305,11 @@ static int
 fisopfs_createfiles(const char *path, mode_t mode, struct fuse_file_info *fi)
 {
 	printf("[debug] fisopfs_createfiles(%s)\n", path);
+	// Delimitamos un limite a la longuitud del path
+	if (strlen(path) > MAX_NAME) {
+		errno = ENAMETOOLONG;
+		return -ENAMETOOLONG;
+	}
 	return create_file(path, mode, true);
 }
 
@@ -307,8 +317,23 @@ static int
 fisop_createdir(const char *path, mode_t mode)
 {
 	printf("[debug] fisop_createdir(%s) con modo: %d\n", path, mode);
-	return create_file(path, mode, false);
+	// Delimitamos un limite a la cantidad de directorios creados
+	if (directories_created >= MAX_DIRECTORIES) {
+		errno = ENOSPC;
+		return -ENOSPC;
+	}
+	if (strlen(path) > (MAX_NAME_DIR)) {
+		errno = ENAMETOOLONG;
+		return -ENAMETOOLONG;
+	}
+
+	int valor = create_file(path, mode, false);
+	if (valor == 0) {
+		directories_created = directories_created + 1;
+	}
+	return valor;
 }
+
 
 int
 search_free_block(int indice, int offset)
@@ -363,6 +388,7 @@ fisop_write(const char *path,
             struct fuse_file_info *fi)
 {
 	printf("[debug] fisop_write(%s)\n", path);
+
 	int inode_index = search_inode_with_path(path);
 	if (inode_index < 0) {
 		int valor = create_file(path, 0755, true);
@@ -480,6 +506,7 @@ fisop_removedir(const char *path)
 	remove_directory_blocks(index);
 	memset(&inodes[index], 0, sizeof(struct inode));
 	inodes[index].is_free = true;
+	directories_created = directories_created - 1;
 	update_time(path);
 	return 0;
 }
@@ -539,6 +566,30 @@ fisop_flush(const char *path, struct fuse_file_info *fi)
 	return 0;
 }
 
+
+static int
+fisop_symlink(const char *path, const char *link)
+{
+	printf("[debug] fisop_symlink\n");
+	// Verificar si el archivo de destino ya existe
+	if (search_inode_with_path(link) >= 0) {
+		printf("[debug] YA EXISTEEEEEEE fisop_symlink: %s\n", link);
+		return -EEXIST;
+	}
+
+	create_file(link, __S_IFLNK | 0777, true);
+
+	// strncpy(symlink_inode.data[0].content, file, BLOCKSIZE);
+
+	// Actualizar los metadatos del archivo original
+	// inodes[file_inode_index].data_of_access = time(NULL);
+	// inodes[file_inode_index].date_of_modification = time(NULL);
+	update_time(path);
+
+	return 0;
+}
+
+
 static struct fuse_operations operations = {
 	.create = fisopfs_createfiles,
 	.getattr = fisopfs_getattr,
@@ -552,6 +603,7 @@ static struct fuse_operations operations = {
 	.utimens = fisop_utimens,
 	.destroy = fisop_destroy,
 	.flush = fisop_flush,
+	.symlink = fisop_symlink,
 
 };
 
@@ -575,6 +627,7 @@ create_inode(const char *path, mode_t mode, bool tipo, int inode_index, int bloc
 	archivo.size = 0;
 	archivo.is_file = tipo;
 	archivo.is_free = false;
+	archivo.is_symlink = false;
 	strcpy(archivo.name, path);
 	return archivo;
 }

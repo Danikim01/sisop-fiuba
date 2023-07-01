@@ -10,6 +10,7 @@
     "ostream": "c",
     "streambuf": "c",
     "tuple": "c",
-    "unistd.h": "c"
+    "unistd.h": "c",
+    "stat.h": "c"
   }
 }

@@ -19,3 +19,32 @@ Es la funcion fisop_destroy la que va a actualizar constantemente el estado actu
 
 - Si se supera el espacio maximo del filesystem se arrojará el error: ENOSPC (ver la funcion create_file())
 - La forma en la que se encuentra un archivo especificado dado un path lo hace la función search_inode_with_path(path) que recibe un path y devuelve la posición donde se encuentra el inodo correspondiente en el array de inodos.
+
+# Casos de Test
+
+Esta es la cantidad de niveles de directorios que soporta nuestro filesystem:
+
+danikim@DESKTOP-0DG2U5K:~/sisop/sisop_2023a_g20/fisopfs/pruebas$ mkdir dir1
+danikim@DESKTOP-0DG2U5K:~/sisop/sisop_2023a_g20/fisopfs/pruebas$ mkdir dir2
+danikim@DESKTOP-0DG2U5K:~/sisop/sisop_2023a_g20/fisopfs/pruebas$ mkdir dir3
+danikim@DESKTOP-0DG2U5K:~/sisop/sisop_2023a_g20/fisopfs/pruebas$ mkdir dir4
+danikim@DESKTOP-0DG2U5K:~/sisop/sisop_2023a_g20/fisopfs/pruebas$ mkdir dir5
+danikim@DESKTOP-0DG2U5K:~/sisop/sisop_2023a_g20/fisopfs/pruebas$ mkdir dir6
+mkdir: cannot create directory ‘dir6’: No space left on device
+danikim@DESKTOP-0DG2U5K:~/sisop/sisop_2023a_g20/fisopfs/pruebas$
+
+Como se ve si se supera dicha cantidad devuelve un mensaje de error
+
+Por otor lado aca se muestra que si el path es muy largo se tira un mensaje de error:
+
+anikim@DESKTOP-0DG2U5K:~/sisop/sisop_2023a_g20/fisopfs/pruebas$ mkdir dir
+danikim@DESKTOP-0DG2U5K:~/sisop/sisop_2023a_g20/fisopfs/pruebas$ ls
+dir
+danikim@DESKTOP-0DG2U5K:~/sisop/sisop_2023a_g20/fisopfs/pruebas$ cd dir
+danikim@DESKTOP-0DG2U5K:~/sisop/sisop_2023a_g20/fisopfs/pruebas/dir$ mkdir dir2
+danikim@DESKTOP-0DG2U5K:~/sisop/sisop_2023a_g20/fisopfs/pruebas/dir$ cd dir2/
+danikim@DESKTOP-0DG2U5K:~/sisop/sisop_2023a_g20/fisopfs/pruebas/dir/dir2$ mkdir dir3
+danikim@DESKTOP-0DG2U5K:~/sisop/sisop_2023a_g20/fisopfs/pruebas/dir/dir2$ cd dir3/
+danikim@DESKTOP-0DG2U5K:~/sisop/sisop_2023a_g20/fisopfs/pruebas/dir/dir2/dir3$ ls
+danikim@DESKTOP-0DG2U5K:~/sisop/sisop_2023a_g20/fisopfs/pruebas/dir/dir2/dir3$ mkdir dir4
+mkdir: cannot create directory ‘dir4’: File name too long
