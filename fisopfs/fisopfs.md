@@ -48,3 +48,5 @@ danikim@DESKTOP-0DG2U5K:~/sisop/sisop_2023a_g20/fisopfs/pruebas/dir/dir2$ cd dir
 danikim@DESKTOP-0DG2U5K:~/sisop/sisop_2023a_g20/fisopfs/pruebas/dir/dir2/dir3$ ls
 danikim@DESKTOP-0DG2U5K:~/sisop/sisop_2023a_g20/fisopfs/pruebas/dir/dir2/dir3$ mkdir dir4
 mkdir: cannot create directory ‘dir4’: File name too long
+
+Para probar esto la variable MAX_NAME 60 se ha modificado temporalmente a 20.

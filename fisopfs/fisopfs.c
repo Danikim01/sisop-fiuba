@@ -17,8 +17,8 @@
 #define BLOCK_DATA_AMOUNT 400
 #define DATABLOCKMAX 4
 #define BLOCKSIZE 4096
-#define MAX_NAME 20
-#define MAX_NAME_DIR 15
+#define MAX_NAME 60
+#define MAX_NAME_DIR 55
 #define MAX_DIRECTORIES 5
 
 struct block {
@@ -35,8 +35,8 @@ struct inode {
 	char name[MAX_NAME];
 	uid_t st_uid;
 	struct block data[DATABLOCKMAX];
-	bool is_symlink;
 	bool is_file;
+	bool is_symlink;
 	bool is_free;
 };
 
@@ -46,6 +46,7 @@ size_t directories_created = 0;
 char *archivo = "myfs.fisopfs";
 
 int search_inode_with_path(const char *path);
+struct inode create_inode(const char *path, mode_t mode, bool tipo, int block_index);
 int create_file(const char *path, mode_t mode, bool tipo);
 int count_slash(const char *name);
 int search_slash(const char *name);
@@ -171,6 +172,8 @@ update_file()
 	fclose(file);
 }
 
+#include <string.h>
+
 static int
 fisopfs_getattr(const char *path, struct stat *st)
 {
@@ -193,6 +196,18 @@ fisopfs_getattr(const char *path, struct stat *st)
 			st->st_blksize = BLOCKSIZE;
 			st->st_blocks =
 			        count_blocks_allocated(inodes[indice_inodo]);
+		} else if (inodes[indice_inodo].is_symlink) {
+			st->st_size = strlen(
+			        path);  // Tamaño de la ruta del enlace simbólico
+			st->st_mode =
+			        S_IRUSR | S_IWUSR | S_IXUSR | S_IRWXO |
+			        __S_IFLNK;  // Modo de enlace simbólico con permisos adecuados
+			st->st_nlink = 1;
+			// Obtener la ruta del enlace simbólico utilizando readlink()
+			int result = readlink(path, st->st_size, st->st_size);
+			if (result == -1) {
+				return -errno;
+			}
 		} else {
 			st->st_mode = __S_IFDIR | 0755;
 			st->st_nlink = 2;
@@ -567,29 +582,6 @@ fisop_flush(const char *path, struct fuse_file_info *fi)
 }
 
 
-static int
-fisop_symlink(const char *path, const char *link)
-{
-	printf("[debug] fisop_symlink\n");
-	// Verificar si el archivo de destino ya existe
-	if (search_inode_with_path(link) >= 0) {
-		printf("[debug] YA EXISTEEEEEEE fisop_symlink: %s\n", link);
-		return -EEXIST;
-	}
-
-	create_file(link, __S_IFLNK | 0777, true);
-
-	// strncpy(symlink_inode.data[0].content, file, BLOCKSIZE);
-
-	// Actualizar los metadatos del archivo original
-	// inodes[file_inode_index].data_of_access = time(NULL);
-	// inodes[file_inode_index].date_of_modification = time(NULL);
-	update_time(path);
-
-	return 0;
-}
-
-
 static struct fuse_operations operations = {
 	.create = fisopfs_createfiles,
 	.getattr = fisopfs_getattr,
@@ -603,8 +595,6 @@ static struct fuse_operations operations = {
 	.utimens = fisop_utimens,
 	.destroy = fisop_destroy,
 	.flush = fisop_flush,
-	.symlink = fisop_symlink,
-
 };
 
 int
@@ -615,7 +605,7 @@ main(int argc, char *argv[])
 }
 
 struct inode
-create_inode(const char *path, mode_t mode, bool tipo, int inode_index, int block_index)
+create_inode(const char *path, mode_t mode, bool tipo, int block_index)
 {
 	struct inode archivo;
 	archivo.mode = mode;
@@ -627,7 +617,6 @@ create_inode(const char *path, mode_t mode, bool tipo, int inode_index, int bloc
 	archivo.size = 0;
 	archivo.is_file = tipo;
 	archivo.is_free = false;
-	archivo.is_symlink = false;
 	strcpy(archivo.name, path);
 	return archivo;
 }
@@ -651,8 +640,7 @@ create_file(const char *path, mode_t mode, bool tipo)
 
 	data_blocks[block_index].is_free = false;
 
-	inodes[inode_index] =
-	        create_inode(path, mode, tipo, inode_index, block_index);
+	inodes[inode_index] = create_inode(path, mode, tipo, block_index);
 
 	update_time(path);
 
