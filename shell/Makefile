@@ -1,5 +1,6 @@
 CFLAGS := -ggdb3 -O2 -Wall -Wextra -std=gnu11
-CFLAGS += -Wmissing-prototypes
+CFLAGS += -Wmissing-prototypes 
+CFLAGS += -g
 
 # To force build a test shell run:
 #     make -B -e SHELL_TEST=true
