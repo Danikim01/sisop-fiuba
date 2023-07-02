@@ -6,6 +6,8 @@ struct cmd *parsed_pipe;
 
 extern struct history_t *global_hist;
 
+extern int background_pgid;
+
 void
 handle_event_designators(char **buf)
 {
@@ -140,23 +142,11 @@ run_cmd(char *cmd)
 	// stores the pid of the process
 	parsed->pid = p;
 
-	// background process special treatment
-	// Hint:
-	// - check if the process is
-	//		going to be run in the 'back'
-	// - print info about it with
-	// 	'print_back_info()'
-	//
-	// Your code here
-
-	// Antes de cada prompt, checkea si algun hijo temrino (pid = -1)
-	waitpid(-1, &status, WNOHANG);
-
 	if (parsed->type == BACK) {
 		// Imprimo la info del proceso corriendo en back
 		print_back_info(parsed);
-		// Hay que poner los procesos de back en un grupo
-		// constantemente (fuera de aca) checkear si termino alguno de los procesos en back
+
+		setpgid(p, getpid()); //getpid() = pid shell
 	} else {
 		// waits for the process to finish
 		waitpid(p, &status, 0);

@@ -7,6 +7,8 @@
 
 char prompt[PRMTLEN] = { 0 };
 
+// pid_t background_pgid = 0;
+
 void
 handle_child_termination(int signal)
 {
@@ -17,7 +19,10 @@ handle_child_termination(int signal)
 	pid_t pid;
 	int status;
 
-	while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
+	if ((pid = waitpid(0, &status, WNOHANG)) > 0) {
+		//waitpid(0, ...) beacuse then it catches any processes
+		//with the same group id as the shell's id (and that was 
+		//the one chosen for background processes)
 		printf("==>  %d terminado.\n", pid);
 	}
 
@@ -36,6 +41,9 @@ run_shell()
 	sigaction(SIGCHLD,
 	          &sa,
 	          NULL);  // Action for child termination in main process is set
+
+    // setpgid(0, 0);  // Set the shell's own process group
+    // background_pgid = getpid(); // store the shell's pid as the background process group id
 
 	char *cmd;
 	// Set the shell process as the process group leader here
