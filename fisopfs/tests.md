@@ -1,25 +1,29 @@
 `ls` sobre un directorio de pruebas:
+
 ```bash
 $ cd ./test_dir # test_dir no posee contenido inicialmente
 /test_dir$ ls
-/test_dir$ 
+/test_dir$
 ```
 
 `touch` para crear un archivo nuevo:
+
 ```bash
 /test_dir$ touch new_file.dat
 /test_dir$ ls # test_dir ahora contiene new_file.dat
 new_file.dat
-/test_dir$ 
+/test_dir$
 ```
 
 `cat` del nuevo archivo no deberia poseer contenido:
+
 ```bash
 /test_dir$ cat new_file.dat
-/test_dir$ 
+/test_dir$
 ```
 
 `echo >` nos crea un archivo con contenido:
+
 ```bash
 /test_dir$ echo foo > foo.file # creamos un archivo con 'foo' como unico contenido
 /test_dir$ cat foo.file
@@ -28,14 +32,15 @@ foo # contenido del archivo
 ```
 
 `cat` de un archivo inexistente deberia fallar:
+
 ```bash
 /test_dir$ cat non_existant.file
 cat: non_existant.dat: No such file or directory
-/test_dir$ 
+/test_dir$
 ```
 
-
 `mkdir` sobre el directorio actual crea un nuevo subdirectorio:
+
 ```bash
 /test_dir$ mkdir dirA
 /test_dir$ cd dirA
@@ -45,7 +50,8 @@ dirB
 /test_dir/dirA$
 ```
 
-`ls -R` sobre directorio `test_dir` nos muestra los subdirectorios: 
+`ls -R` sobre directorio `test_dir` nos muestra los subdirectorios:
+
 ```bash
 /test_dir$ ls -R
 .:
@@ -55,20 +61,22 @@ dirA  foo.file  new_file.dat
 dirB
 
 ./dirA/dirB:
-/test_dir$ 
+/test_dir$
 ```
 
 `ls -l` nos muestra los detalles de los archivos del directorio:
+
 ```bash
 /test_dir$ ls -l
 total 4
 drwxr-xr-x 2 juan518 juan518 0 Jul  1 19:28 dirA
 -rw-r--r-- 1 juan518 juan518 4 Jul  1 19:24 foo.file
 -rw-r--r-- 1 juan518 juan518 0 Jul  1 19:20 new_file.dat
-/test_dir$ 
+/test_dir$
 ```
 
 `rm` de un archivo inexistente falla:
+
 ```bash
 /test_dir$ ls
 dirA  foo.file  new_file.dat
@@ -78,16 +86,18 @@ rm: cannot remove 'non_existant.file': No such file or directory
 ```
 
 `rm` de un archivo existente no falla:
+
 ```bash
 /test_dir$ ls
 dirA  foo.file  new_file.dat
 /test_dir$ rm foo.file
 /test_dir$ ls
 dirA  new_file.dat # foo.file ya no existe
-/test_dir$ 
+/test_dir$
 ```
 
 `rmdir` sobre directorio no vacio falla:
+
 ```bash
 /test_dir$ rmdir dirA
 rmdir: failed to remove 'dirA': Directory not empty
@@ -95,6 +105,7 @@ rmdir: failed to remove 'dirA': Directory not empty
 ```
 
 `rmdir` sobre directorio vacio no falla:
+
 ```bash
 /test_dir$ cd dirA
 /test_dir/dirA$ ls -R
@@ -104,10 +115,11 @@ dirB
 ./dirB:
 /test_dir/dirA$ rmdir dirB
 /test_dir/dirA$ ls # ya no devuelve contenido
-/test_dir/dirA$ 
+/test_dir/dirA$
 ```
 
 `stat` de un directorio devuelve información sobre el mismo:
+
 ```bash
 /test_dir$ stat dirA
   File: dirA
@@ -118,6 +130,37 @@ Access: 2023-07-01 19:28:31.000000000 -0300
 Modify: 2023-07-01 19:40:07.000000000 -0300
 Change: 2023-07-01 19:40:07.000000000 -0300
  Birth: 2023-07-01 19:22:19.000000000 -0300
-/test_dir$ 
+/test_dir$
 ```
 
+`echo >` se demuestra que se puede sobreescribir el contenido de un archivo y el tamaño del mismo se actualiza correctamente:
+
+```bash
+danikim@DESKTOP-0DG2U5K:~/sisop/sisop_2023a_g20/fisopfs/pruebas$ echo holaaaa > a.txt
+danikim@DESKTOP-0DG2U5K:~/sisop/sisop_2023a_g20/fisopfs/pruebas$ cat a.txt
+holaaaa
+danikim@DESKTOP-0DG2U5K:~/sisop/sisop_2023a_g20/fisopfs/pruebas$ stat a.txt
+  File: a.txt
+  Size: 8               Blocks: 1          IO Block: 4096   regular file
+Device: 5ch/92d Inode: 3           Links: 1
+Access: (0644/-rw-r--r--)  Uid: ( 1000/ danikim)   Gid: ( 1000/ danikim)
+Access: 2023-07-02 04:10:57.000000000 -0300
+Modify: 2023-07-02 04:10:55.000000000 -0300
+Change: 2023-07-02 04:10:55.000000000 -0300
+ Birth: -
+danikim@DESKTOP-0DG2U5K:~/sisop/sisop_2023a_g20/fisopfs/pruebas$ echo chau > a.txt
+danikim@DESKTOP-0DG2U5K:~/sisop/sisop_2023a_g20/fisopfs/pruebas$ cat a.txt
+chau
+danikim@DESKTOP-0DG2U5K:~/sisop/sisop_2023a_g20/fisopfs/pruebas$ stat
+stat: missing operand
+Try 'stat --help' for more information.
+danikim@DESKTOP-0DG2U5K:~/sisop/sisop_2023a_g20/fisopfs/pruebas$ stat a.txt
+  File: a.txt
+  Size: 5               Blocks: 1          IO Block: 4096   regular file
+Device: 5ch/92d Inode: 3           Links: 1
+Access: (0644/-rw-r--r--)  Uid: ( 1000/ danikim)   Gid: ( 1000/ danikim)
+Access: 2023-07-02 04:11:37.000000000 -0300
+Modify: 2023-07-02 04:11:32.000000000 -0300
+Change: 2023-07-02 04:11:32.000000000 -0300
+ Birth: -
+```

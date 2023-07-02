@@ -15,8 +15,8 @@
 #include <string.h>
 
 #define INODE_AMOUNT 100
-#define BLOCK_DATA_AMOUNT 400
-#define DATABLOCKMAX 4
+#define BLOCK_DATA_AMOUNT 100
+#define DATABLOCKMAX 1
 #define BLOCKSIZE 4096
 #define MAX_NAME 60
 #define MAX_NAME_DIR 55
@@ -52,7 +52,8 @@ struct inode create_inode(const char *path,
                           mode_t mode,
                           bool tipo,
                           int block_index,
-                          int parent_index);
+                          int parent_index,
+                          int index);
 int create_file(const char *path, mode_t mode, bool tipo);
 int count_slash(const char *name);
 int search_slash(const char *name);
@@ -92,6 +93,10 @@ init_file()
 	for (int i = 0; i < INODE_AMOUNT; i++) {
 		memset(&inodes[i], 0, sizeof(struct inode));
 		inodes[i].is_free = true;
+		for (int j = 0; j < DATABLOCKMAX; j++) {
+			inodes[i].data[j].is_free = true;
+			inodes[i].data[j].inode_index = -1;
+		}
 	}
 
 	for (int i = 0; i < BLOCK_DATA_AMOUNT; i++) {
@@ -128,7 +133,6 @@ load_file_from_disk(FILE *file)
 	}
 
 	for (int i = 0; i < INODE_AMOUNT; i++) {
-		memset(&inodes[i].data, 0, sizeof(struct inode));
 		valor = fread(&inodes[i], sizeof(inodes[i]), 1, file);
 		if (valor < 0) {
 			perror("Error al leer el inodes\n");
@@ -433,7 +437,7 @@ fisop_write(const char *path,
 	update_time(path);
 
 	while (offset < (BLOCKSIZE * DATABLOCKMAX)) {
-		if (!inodes[inode_index].is_free) {
+		if (inodes[inode_index].data[offset / BLOCKSIZE].inode_index >= 0) {
 			int bytes_written = write_to_block(
 			        &inodes[inode_index], message, size, offset);
 			return bytes_written;
@@ -443,6 +447,8 @@ fisop_write(const char *path,
 			}
 		}
 	}
+
+
 	return write_remaining_data(inode_index, message, size, offset);
 }
 
@@ -463,13 +469,14 @@ fisop_removefile(const char *path)
 		return -EISDIR;
 	}
 
+	memset(&inodes[indice], 0, sizeof(struct inode));
 	for (int j = 0; j < DATABLOCKMAX; j++) {
 		memset(inodes[indice].data[j].content, 0, BLOCKSIZE);
 		memset(&inodes[indice].data[j], 0, sizeof(struct block));
 		inodes[indice].data[j].is_free = true;
+		inodes[indice].data[j].inode_index = -1;
 	}
 
-	memset(&inodes[indice], 0, sizeof(struct inode));
 	inodes[indice].is_free = true;
 
 	for (int i = 0; i < BLOCK_DATA_AMOUNT; i++) {
@@ -477,6 +484,7 @@ fisop_removefile(const char *path)
 			memset(data_blocks[i].content, 0, BLOCKSIZE);
 			memset(&data_blocks[i], 0, sizeof(struct block));
 			data_blocks[i].is_free = true;
+			data_blocks[i].inode_index = -1;
 		}
 	}
 
@@ -494,13 +502,14 @@ remove_directory_blocks(int indice)
 		return -ENOTDIR;
 	}
 
+	memset(&inodes[indice], 0, sizeof(struct inode));
 	for (int j = 0; j < DATABLOCKMAX; j++) {
 		memset(inodes[indice].data[j].content, 0, BLOCKSIZE);
 		memset(&inodes[indice].data[j], 0, sizeof(struct block));
 		inodes[indice].data[j].is_free = true;
+		inodes[indice].data[j].inode_index = -1;
 	}
 
-	memset(&inodes[indice], 0, sizeof(struct inode));
 	inodes[indice].is_free = true;
 
 	for (int i = 0; i < BLOCK_DATA_AMOUNT; i++) {
@@ -508,6 +517,7 @@ remove_directory_blocks(int indice)
 			memset(data_blocks[i].content, 0, BLOCKSIZE);
 			memset(&data_blocks[i], 0, sizeof(struct block));
 			data_blocks[i].is_free = true;
+			data_blocks[i].inode_index = -1;
 		}
 	}
 
@@ -545,7 +555,7 @@ fisop_removedir(const char *path)
 	if (amount_of_files_in_dir(path) == 0) {
 		remove_directory_contents(path);
 		remove_directory_blocks(index);
-		memset(&inodes[index], 0, sizeof(struct inode));
+		// memset(&inodes[index], 0, sizeof(struct inode));
 		inodes[index].is_free = true;
 		update_time(path);
 		return 0;
@@ -610,6 +620,13 @@ fisop_flush(const char *path, struct fuse_file_info *fi)
 	return 0;
 }
 
+static int
+fisop_truncate(const char *path_archivo, off_t offset, struct fuse_file_info *fi)
+{
+	printf("[debug] fisop_truncate\n");
+	return 0;
+}
+
 
 static struct fuse_operations operations = {
 	.create = fisopfs_createfiles,
@@ -624,6 +641,7 @@ static struct fuse_operations operations = {
 	.utimens = fisop_utimens,
 	.destroy = fisop_destroy,
 	.flush = fisop_flush,
+	.truncate = fisop_truncate,
 };
 
 int
@@ -634,9 +652,14 @@ main(int argc, char *argv[])
 }
 
 struct inode
-create_inode(const char *path, mode_t mode, bool tipo, int block_index, int index_parent)
+create_inode(const char *path,
+             mode_t mode,
+             bool tipo,
+             int block_index,
+             int index_parent,
+             int index)
 {
-	struct inode archivo;
+	struct inode archivo = inodes[index];
 	archivo.mode = mode;
 	archivo.date_of_creation = time(NULL);
 	archivo.data_of_access = time(NULL);
@@ -678,8 +701,8 @@ create_file(const char *path, mode_t mode, bool tipo)
 	data_blocks[block_index].is_free = false;
 	data_blocks[block_index].inode_index = inode_index;
 
-	inodes[inode_index] =
-	        create_inode(path, mode, tipo, block_index, index_parent_inode);
+	inodes[inode_index] = create_inode(
+	        path, mode, tipo, block_index, index_parent_inode, inode_index);
 
 	update_time(path);
 

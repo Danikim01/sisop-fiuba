@@ -2,7 +2,7 @@
 
 # Diseño de nuestro filesystem:
 
-El file system implementado consiste simplemente en un conjunto de 400 bloques de data, las cuales son referenciados por 100 inodos de forma que cada inodo tener hasta 4 referencias a bloques de datos.
+El file system implementado consiste simplemente en un conjunto de 100 bloques de data, las cuales son referenciados por 100 inodos de forma que cada inodo tiene referencia a un bloque de datos.
 El struct block es la que contiene el dato del archivo (o directorio) ademas de almacenar informacion sobre si la misma se encuentra libre o no. El campo inode_index del bloque es el indice del inodo que apunta el bloque en cuestion, de forma que se pudo establecer un vinculo entre inodo-bloque dado que cada bloque sabe que inodo lo esta "apuntando" por asi decir.
 
 Los inodos son estructuras que sostienen la metadata correspondiente a cada archivo, y al igual que los bloques saben si se encuentran libres o no. De esta forma se evito usar bitmaps tanto para bloques de datos como bloques de inodos.
