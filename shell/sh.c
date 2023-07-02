@@ -10,11 +10,14 @@ char prompt[PRMTLEN] = { 0 };
 void
 handle_child_termination(int signal)
 {
-	int saved_errno = errno;
+	int saved_errno = errno; //We save errno in order not to interfer with other functions
+	//Obs: not doing this interfers with the behaviour of the read function in line 211 readline.c
+	//and pid 1 is printed below
+
 	pid_t pid;
 	int status;
 
-	while ((pid = waitpid((pid_t) (-1), &status, WNOHANG)) > 0) {
+	while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
 		printf("==>  %d terminado.\n", pid);
 	}
 
