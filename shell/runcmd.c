@@ -84,7 +84,7 @@ run_cmd(char *cmd)
 {
 	pid_t p;
 	struct cmd *parsed;
-	
+
 
 	// if the "enter" key is pressed
 	// just print the prompt again
@@ -155,8 +155,8 @@ run_cmd(char *cmd)
 	if (parsed->type == BACK) {
 		// Imprimo la info del proceso corriendo en back
 		print_back_info(parsed);
-		//Hay que poner los procesos de back en un grupo 
-		//constantemente (fuera de aca) checkear si termino alguno de los procesos en back
+		// Hay que poner los procesos de back en un grupo
+		// constantemente (fuera de aca) checkear si termino alguno de los procesos en back
 	} else {
 		// waits for the process to finish
 		waitpid(p, &status, 0);

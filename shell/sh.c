@@ -7,31 +7,35 @@
 
 char prompt[PRMTLEN] = { 0 };
 
-void handle_child_termination(int signal) {
+void
+handle_child_termination(int signal)
+{
 	int saved_errno = errno;
-    pid_t pid;
-    int status;
+	pid_t pid;
+	int status;
 
-    while ((pid = waitpid((pid_t)(-1), &status, WNOHANG)) > 0) {
-        printf("==>  %d terminado.\n", pid);
-    }
+	while ((pid = waitpid((pid_t) (-1), &status, WNOHANG)) > 0) {
+		printf("==>  %d terminado.\n", pid);
+	}
 
-    errno = saved_errno;
+	errno = saved_errno;
 }
 
 // runs a shell command
 static void
 run_shell()
 {
-	//Sets the action for child termination
+	// Sets the action for child termination
 	struct sigaction sa;
-	sa.sa_handler = handle_child_termination; //Hanlder is assigned
-	sigemptyset(&sa.sa_mask); //I don't want to block any signal
-	sa.sa_flags = SA_RESTART; //No flags needed
-	sigaction(SIGCHLD, &sa, NULL);//Action for child termination in main process is set
-	
+	sa.sa_handler = handle_child_termination;  // Hanlder is assigned
+	sigemptyset(&sa.sa_mask);  // I don't want to block any signal
+	sa.sa_flags = SA_RESTART;  // No flags needed
+	sigaction(SIGCHLD,
+	          &sa,
+	          NULL);  // Action for child termination in main process is set
+
 	char *cmd;
-	//Set the shell process as the process group leader here
+	// Set the shell process as the process group leader here
 	while ((cmd = read_line(prompt)) != NULL)
 		if (run_cmd(cmd) == EXIT_SHELL)
 			return;
