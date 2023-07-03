@@ -40,7 +40,9 @@ struct inode {
 	struct block data[DATABLOCKMAX];
 	bool is_file;
 	bool is_free;
+	bool is_symlink;
 	int inode_parent_index;
+	char target_path[MAX_NAME];
 };
 
 struct block data_blocks[BLOCK_DATA_AMOUNT];
@@ -53,8 +55,9 @@ struct inode create_inode(const char *path,
                           bool tipo,
                           int block_index,
                           int parent_index,
-                          int index);
-int create_file(const char *path, mode_t mode, bool tipo);
+                          int index,
+                          bool is_sysmlink);
+int create_file(const char *path, mode_t mode, bool tipo, bool is_sysmlink);
 int count_slash(const char *name);
 int search_slash(const char *name);
 int comp_str(const char *string1, char *string2);
@@ -217,7 +220,11 @@ fisopfs_getattr(const char *path, struct stat *st)
 		if (indice_inodo < 0) {
 			return -ENOENT;
 		}
-		if (inodes[indice_inodo].is_file) {
+		if (inodes[indice_inodo].is_symlink) {
+			st->st_mode = __S_IFLNK | 0777;
+			st->st_nlink = 1;
+			st->st_size = inodes[indice_inodo].size;
+		} else if (inodes[indice_inodo].is_file) {
 			st->st_size = inodes[indice_inodo].size;
 			st->st_mode = __S_IFREG | 0644;
 			st->st_nlink = 1;
@@ -341,7 +348,7 @@ fisopfs_createfiles(const char *path, mode_t mode, struct fuse_file_info *fi)
 		errno = ENAMETOOLONG;
 		return -ENAMETOOLONG;
 	}
-	return create_file(path, mode, true);
+	return create_file(path, mode, true, false);
 }
 
 static int
@@ -352,7 +359,7 @@ fisop_createdir(const char *path, mode_t mode)
 		errno = ENAMETOOLONG;
 		return -ENAMETOOLONG;
 	}
-	int valor = create_file(path, mode, false);
+	int valor = create_file(path, mode, false, false);
 	return valor;
 }
 
@@ -413,7 +420,7 @@ fisop_write(const char *path,
 
 	int inode_index = search_inode_with_path(path);
 	if (inode_index < 0) {
-		int valor = create_file(path, 0755, true);
+		int valor = create_file(path, 0755, true, false);
 		if (valor != 0) {
 			return valor;
 		}
@@ -628,6 +635,178 @@ fisop_truncate(const char *path_archivo, off_t offset, struct fuse_file_info *fi
 }
 
 
+/** Read the target of a symbolic link
+ *
+ * The buffer should be filled with a null terminated string.  The
+ * buffer size argument includes the space for the terminating
+ * null character.	If the linkname is too long to fit in the
+ * buffer, it should be truncated.	The return value should be 0
+ * for success.
+ */
+static int
+fisop_readlink(const char *path, char *buf, size_t size)
+{
+	printf("[debug] fisop_readlink(%s)\n", path);
+
+	int inode_index = search_inode_with_path(path);
+	if (inode_index == -1) {
+		return -ENOENT;
+	}
+
+	if (!inodes[inode_index].is_symlink) {
+		return -EINVAL;  // El archivo no es un enlace simbólico
+	}
+
+	if (strlen(inodes[inode_index].target_path) >= size) {
+		return -ENAMETOOLONG;  // El buffer de destino no es lo suficientemente grande
+	}
+
+	strncpy(buf, inodes[inode_index].target_path, size);
+	buf[size - 1] = '\0';
+
+	return 0;
+}
+
+
+void
+extract_last_component(const char *path, char *buffer, size_t buffer_size)
+{
+	const char *last_slash = strrchr(path, '/');
+	if (last_slash != NULL) {
+		// Avanzar después de la última barra diagonal
+		last_slash++;
+
+		// Copiar el último componente al buffer
+		strncpy(buffer, last_slash, buffer_size - 1);
+		buffer[buffer_size - 1] = '\0';
+	} else {
+		// No se encontró ninguna barra diagonal, copiar todo el path
+		strncpy(buffer, path, buffer_size - 1);
+		buffer[buffer_size - 1] = '\0';
+	}
+}
+
+
+static int
+fisop_symlink(const char *from, const char *to)
+{
+	printf("[debug] fisop_symlink\n");
+	printf("from: %s\n", from);
+	printf("to: %s\n", to);
+
+
+	char from_with_slash[MAX_NAME];
+	// Para el to se debe eliminar todo lo que venga antes del ulitmo string
+	// Ej si to es /carpeta/enlace_simbolico se debe eliminar /carpeta y quedar
+	// solo /enlace_simbolico para el nombre del archivo (realizar con memoria estatica)
+	char filename[MAX_NAME];
+	extract_last_component(to, filename, sizeof(filename));
+	char filename_with_slash[MAX_NAME];
+	strcpy(filename_with_slash, "/");
+	strcat(filename_with_slash, filename);
+	strcat(filename_with_slash, "\0");
+	printf("filename: %s\n", filename_with_slash);
+
+	if (count_slash(to) <= 1) {
+		// Si estoy en raiz concatenar un / al principio del from de tal
+		// forma que quede /from usando memoria estatica
+		strcpy(from_with_slash, "/");
+		strcat(from_with_slash, from);
+		strcat(from_with_slash, "\0");
+	} else {
+		// Tengo que de alguna forma hallar el path original del archivo
+		// from Si por ejemplo a.txt esta en carpeta/a.txt entonces a
+		// search_inode_with_path le tengo que pasar /carpeta/a.txt
+		// Entonces a a.txt le tengo que concatenar al inicio /carpeta/
+		// y al final \0 esto lo puedo hacer sabiendo que to contiene el
+		// path del archivo ej: si to es /carpeta/enlace_simbolico
+		// entonces a a.txt le tengo que concatenar /carpeta/ para que
+		// me quede /carpeta/a.txt
+		strcpy(from_with_slash, to);
+		// en from with lash ahora tengo /carpeta/enlace_simbolico tengo
+		// que eliminar enlace_simbolico y en su lugar poner from
+		char *last_slash = strrchr(from_with_slash, '/');
+		if (last_slash) {
+			last_slash[1] =
+			        '\0';  // Elimina la parte final (enlace_simbolico) agregada a través de 'to'
+			strcat(from_with_slash, from);
+		}
+
+		// tengo que hacer exactamente lo mismo para filename_with_slash
+		// aca filename  tiene enlace_simbolico le tengo que concatenar
+		// /una_carpeta/enlace_simbolico Hacer lo mismo para
+		// 'filename_with_slash'
+		strcpy(filename_with_slash, to);
+
+		last_slash = strrchr(filename_with_slash, '/');
+		if (last_slash) {
+			last_slash[1] =
+			        '\0';  // Eliminar la parte final (enlace_simbolico) agregada a través de 'to'
+			strcat(filename_with_slash, filename);
+		}
+	}
+
+
+	printf("from_with_slash: %s\n", from_with_slash);
+	printf("filename_with_slash: %s\n", filename_with_slash);
+
+	int from_index = search_inode_with_path(from_with_slash);
+	if (from_index < 0) {
+		printf("error\n");
+		errno = ENOENT;
+		return -ENOENT;
+	}
+
+
+	printf("The name of the file from index is %s\n", inodes[from_index].name);
+
+
+	int inode_index = 0;
+	int block_index = 0;
+
+	while (block_index < BLOCK_DATA_AMOUNT &&
+	       !data_blocks[block_index].is_free) {
+		block_index++;
+	}
+	while (inode_index < INODE_AMOUNT && !inodes[inode_index].is_free) {
+		inode_index++;
+	}
+
+	if (inode_index >= INODE_AMOUNT || block_index >= BLOCK_DATA_AMOUNT)
+		return -ENOSPC;
+
+	data_blocks[block_index].is_free = false;
+	data_blocks[block_index].inode_index = inode_index;
+
+	struct inode archivo = inodes[inode_index];
+	archivo.mode = __S_IFLNK | 0777;
+	archivo.date_of_creation = time(NULL);
+	archivo.data_of_access = time(NULL);
+	archivo.date_of_modification = time(NULL);
+	archivo.data[0] = data_blocks[block_index];
+
+	archivo.st_uid = getuid();
+	archivo.size = strlen(from);
+	archivo.is_file = true;
+	archivo.is_free = false;
+	archivo.inode_parent_index = 0;
+	archivo.is_symlink = true;
+	strcpy(archivo.name, filename_with_slash);
+
+	strncpy(archivo.target_path, from, sizeof(from_with_slash));
+
+	printf("the name of the symbolic link file is %s\n", archivo.name);
+	printf("the target name of the  symbolic link file is %s\n",
+	       archivo.target_path);
+	printf("the size of the file is %ld\n", archivo.size);
+
+	printf("agrego el archivo en el index %d\n", inode_index);
+	inodes[inode_index] = archivo;
+
+	return 0;
+}
+
+
 static struct fuse_operations operations = {
 	.create = fisopfs_createfiles,
 	.getattr = fisopfs_getattr,
@@ -642,6 +821,8 @@ static struct fuse_operations operations = {
 	.destroy = fisop_destroy,
 	.flush = fisop_flush,
 	.truncate = fisop_truncate,
+	.symlink = fisop_symlink,
+	.readlink = fisop_readlink,
 };
 
 int
@@ -657,7 +838,8 @@ create_inode(const char *path,
              bool tipo,
              int block_index,
              int index_parent,
-             int index)
+             int index,
+             bool is_symlink)
 {
 	struct inode archivo = inodes[index];
 	archivo.mode = mode;
@@ -670,12 +852,16 @@ create_inode(const char *path,
 	archivo.is_file = tipo;
 	archivo.is_free = false;
 	archivo.inode_parent_index = index_parent;
+	archivo.is_symlink = is_symlink;
+	printf("Creando un archivo con nombre %s\n", path);
 	strcpy(archivo.name, path);
+	printf("El nombre del archivo es %s\n", archivo.name);
+	strcpy(archivo.target_path, " ");
 	return archivo;
 }
 
 int
-create_file(const char *path, mode_t mode, bool tipo)
+create_file(const char *path, mode_t mode, bool tipo, bool is_symlink)
 {
 	int inode_index = 0;
 	int block_index = 0;
@@ -701,8 +887,13 @@ create_file(const char *path, mode_t mode, bool tipo)
 	data_blocks[block_index].is_free = false;
 	data_blocks[block_index].inode_index = inode_index;
 
-	inodes[inode_index] = create_inode(
-	        path, mode, tipo, block_index, index_parent_inode, inode_index);
+	inodes[inode_index] = create_inode(path,
+	                                   mode,
+	                                   tipo,
+	                                   block_index,
+	                                   index_parent_inode,
+	                                   inode_index,
+	                                   is_symlink);
 
 	update_time(path);
 
